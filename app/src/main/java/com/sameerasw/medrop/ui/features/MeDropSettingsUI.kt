@@ -51,13 +51,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import com.sameerasw.medrop.ui.modifiers.BlurDirection
+import com.sameerasw.medrop.ui.modifiers.progressiveBlur
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -71,6 +77,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.graphics.shapes.Morph
+import androidx.graphics.shapes.RoundedPolygon
 import androidx.graphics.shapes.toPath
 import coil.compose.AsyncImage
 import com.sameerasw.medrop.R
@@ -163,11 +170,47 @@ fun MeDropHeaderUI(
         }
     }
 
-    val morph = remember(previousPolygon.value, currentPolygon.value) {
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val screenWidthDp = configuration.screenWidthDp.dp
+    val screenHeightDp = configuration.screenHeightDp.dp
+    val statusBarTop = androidx.compose.foundation.layout.WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val headerCenterY = statusBarTop + 4.dp + 8.dp + ((headerHeight - 16.dp) / 2f)
+    val globalEntranceOffsetY = with(density) { ((screenHeightDp / 2f) - headerCenterY).toPx() }
+    val currentGlobalOffsetY = (1f - entranceProgress) * globalEntranceOffsetY
+    val currentPhotoScale = 0.84f + (0.16f * entranceProgress)
+    val textAlpha = entranceProgress.coerceIn(0f, 1f)
+
+    val minHeaderHeight = 200.dp
+    val maxHeaderHeight = screenWidthDp.coerceAtLeast(300.dp)
+    val expansionFraction = if (maxHeaderHeight > minHeaderHeight) {
+        ((headerHeight - minHeaderHeight) / (maxHeaderHeight - minHeaderHeight)).coerceIn(0f, 1f)
+    } else 0f
+
+    // Morph to square only in the final 99%+ threshold
+    val morphToSquareFraction = if (expansionFraction > 0.98f) {
+        ((expansionFraction - 0.98f) / 0.02f).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+
+    val baseMorph = remember(previousPolygon.value, currentPolygon.value) {
         Morph(previousPolygon.value, currentPolygon.value)
     }
 
-    val animatedShape = remember(morph, morphProgress.value) {
+    val sharpSquarePolygon = remember {
+        RoundedPolygon(
+            numVertices = 4,
+            centerX = 0.5f,
+            centerY = 0.5f,
+        )
+    }
+
+    val squareMorph = remember(currentPolygon.value, sharpSquarePolygon) {
+        Morph(currentPolygon.value, sharpSquarePolygon)
+    }
+
+    val animatedShape = remember(baseMorph, squareMorph, morphProgress.value, morphToSquareFraction) {
         object : Shape {
             override fun createOutline(
                 size: Size,
@@ -177,28 +220,27 @@ fun MeDropHeaderUI(
                 val matrix = Matrix().apply {
                     postScale(size.width, size.height)
                 }
-                val androidPath = morph.toPath(morphProgress.value)
+                val androidPath = if (morphToSquareFraction > 0f) {
+                    squareMorph.toPath(morphToSquareFraction)
+                } else {
+                    baseMorph.toPath(morphProgress.value)
+                }
                 androidPath.transform(matrix)
                 return Outline.Generic(androidPath.asComposePath())
             }
         }
     }
 
-    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    val screenHeightDp = configuration.screenHeightDp.dp
-    val statusBarTop = androidx.compose.foundation.layout.WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val headerCenterY = statusBarTop + 4.dp + 8.dp + ((headerHeight - 16.dp) / 2f)
-    val globalEntranceOffsetY = with(density) { ((screenHeightDp / 2f) - headerCenterY).toPx() }
-    val currentGlobalOffsetY = (1f - entranceProgress) * globalEntranceOffsetY
-    val currentPhotoScale = 0.84f + (0.16f * entranceProgress)
-    val textAlpha = entranceProgress.coerceIn(0f, 1f)
+    val normalAvatarSize = minHeaderHeight - 16.dp
+    val currentWidth = normalAvatarSize + (screenWidthDp - normalAvatarSize) * expansionFraction
+    val currentHeight = headerHeight
+    val horizontalPadding = (16.dp * (1f - expansionFraction)).coerceAtLeast(0.dp)
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .offset { androidx.compose.ui.unit.IntOffset(0, currentGlobalOffsetY.toInt()) }
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = horizontalPadding, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -206,34 +248,48 @@ fun MeDropHeaderUI(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(headerHeight)
-                .padding(vertical = 8.dp),
+                .padding(vertical = (8.dp * (1f - expansionFraction)).coerceAtLeast(0.dp)),
             contentAlignment = Alignment.Center,
         ) {
             Box(
                 modifier = Modifier
-                    .size(headerHeight - 16.dp)
+                    .size(width = currentWidth, height = currentHeight)
                     .graphicsLayer {
                         scaleX = currentPhotoScale
                         scaleY = currentPhotoScale
                     }
                     .clip(animatedShape)
+                    .clipToBounds()
                     .clickable {
                         HapticUtil.performVirtualKeyHaptic(view)
                         isPhotoMenuExpanded = true
                     },
                 contentAlignment = Alignment.Center,
             ) {
+                val blurBottomPx = with(density) { 180.dp.toPx() }
+                val imageBlurModifier = if (morphToSquareFraction > 0.01f) {
+                    Modifier
+                        .fillMaxSize()
+                        .clipToBounds()
+                        .progressiveBlur(
+                            blurRadius = 45f * morphToSquareFraction,
+                            height = blurBottomPx,
+                            direction = BlurDirection.BOTTOM,
+                        )
+                } else {
+                    Modifier.fillMaxSize()
+                }
+
                 if (!currentPhotoUri.isNullOrBlank()) {
                     AsyncImage(
                         model = currentPhotoUri,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = imageBlurModifier,
                     )
                 } else if (contact != null) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
+                        modifier = imageBlurModifier
                             .background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center,
                     ) {
@@ -246,18 +302,37 @@ fun MeDropHeaderUI(
                     }
                 } else {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
+                        modifier = imageBlurModifier
                             .background(MaterialTheme.colorScheme.surfaceVariant),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            painter = painterResource(R.drawable.rounded_add_photo_alternate_24),
+                            painter = painterResource(R.drawable.rounded_contacts_product_24),
                             contentDescription = null,
                             modifier = Modifier.size(64.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                }
+
+                // Smooth fade gradient to surfaceContainer overlaying above the blurred image
+                if (morphToSquareFraction > 0.01f) {
+                    val surfaceColor = MaterialTheme.colorScheme.surfaceContainer
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp)
+                            .align(Alignment.BottomCenter)
+                            .clipToBounds()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        surfaceColor.copy(alpha = morphToSquareFraction)
+                                    )
+                                )
+                            )
+                    )
                 }
             }
 

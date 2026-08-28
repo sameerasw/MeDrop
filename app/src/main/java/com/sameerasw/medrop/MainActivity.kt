@@ -164,8 +164,10 @@ class MainActivity : AppCompatActivity() {
             }
 
             val density = LocalDensity.current
+            val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+            val screenWidth = configuration.screenWidthDp.dp
             val minHeaderHeight = 200.dp
-            val maxHeaderHeight = 400.dp
+            val maxHeaderHeight = screenWidth.coerceAtLeast(300.dp)
             var headerHeight by remember { mutableStateOf(minHeaderHeight) }
 
             val view = LocalView.current
@@ -353,11 +355,11 @@ class MainActivity : AppCompatActivity() {
                                     .nestedScroll(nestedScrollConnection)
                                     .verticalScroll(rememberScrollState()),
                         ) {
+                            val expansionFraction = ((headerHeight - minHeaderHeight) / (maxHeaderHeight - minHeaderHeight)).coerceIn(0f, 1f)
+                            val topSpacerHeight = (WindowInsets.statusBars.asPaddingValues().calculateTopPadding() * (1f - expansionFraction)) - (24.dp * expansionFraction)
                             Spacer(
                                 modifier =
-                                    Modifier.height(
-                                        WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
-                                    ),
+                                    Modifier.height(topSpacerHeight.coerceAtLeast(-24.dp)),
                             )
 
                             // Common Top Header: Photo (with morphing shape) & Contact Name
@@ -367,7 +369,7 @@ class MainActivity : AppCompatActivity() {
                                 activeProfileType = activeProfileType,
                                 onPickContactClick = onPickContactClick,
                                 entranceProgress = entranceProgress.value,
-                                modifier = Modifier.padding(top = 4.dp),
+                                modifier = Modifier.padding(top = (4.dp * (1f - expansionFraction))),
                             )
 
                             val contentOffsetY = with(density) { (1f - entranceProgress.value) * 300.dp.toPx() }
