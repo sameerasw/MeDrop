@@ -16,6 +16,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,7 +60,10 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
@@ -88,6 +92,7 @@ import com.sameerasw.medrop.ui.core.cards.IconToggleItem
 import com.sameerasw.medrop.ui.core.containers.RoundedCardContainer
 import com.sameerasw.medrop.ui.core.pickers.SegmentedPicker
 import com.sameerasw.medrop.ui.core.sheets.MeDropBottomSheetContainer
+import com.sameerasw.medrop.ui.effects.NfcRippleEffect
 import com.sameerasw.medrop.ui.theme.Shapes
 import com.sameerasw.medrop.utils.HapticUtil
 import com.sameerasw.medrop.utils.MeDropNfcManager
@@ -153,6 +158,24 @@ fun MeDropBottomSheet(
     }
 
     val isScanActive by MeDropHceService.isScanActive.collectAsState(initial = false)
+    var avatarCenterOffset by remember { mutableStateOf<androidx.compose.ui.geometry.Offset?>(null) }
+    var sheetRippleTrigger by remember { mutableStateOf(0) }
+
+    LaunchedEffect(isScanActive) {
+        if (isScanActive && safeSettings.showRipple) {
+            sheetRippleTrigger++
+            val center = avatarCenterOffset
+            val (cx, cy) = if (center != null) {
+                center.x to center.y
+            } else {
+                val loc = IntArray(2)
+                view.getLocationInWindow(loc)
+                (loc[0] + (view.width / 2f)) to (loc[1] + (view.height / 3f))
+            }
+            NfcRippleEffect.triggerOnView(view, cx, cy)
+            MainActivity.triggerLiquidRipple(cx, cy)
+        }
+    }
 
     val hapticScanIntensity by animateFloatAsState(
         targetValue = if (isScanActive) 1f else 0f,
@@ -249,7 +272,11 @@ fun MeDropBottomSheet(
         }
     }
 
-    MeDropBottomSheetContainer(onDismissRequest = onDismissRequest) {
+    MeDropBottomSheetContainer(
+        onDismissRequest = onDismissRequest,
+        rippleTrigger = sheetRippleTrigger,
+        rippleOrigin = avatarCenterOffset ?: androidx.compose.ui.geometry.Offset.Zero
+    ) {
         Column(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
@@ -366,6 +393,32 @@ fun MeDropBottomSheet(
                     Box(
                         modifier = Modifier
                             .size(photoAvatarSize)
+                            .onGloballyPositioned { coordinates ->
+                                val pos = coordinates.positionInWindow()
+                                val size = coordinates.size
+                                avatarCenterOffset = androidx.compose.ui.geometry.Offset(
+                                    x = pos.x + (size.width / 2f),
+                                    y = pos.y + (size.height / 2f)
+                                )
+                            }
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onLongPress = {
+                                        HapticUtil.performHeavyHaptic(view)
+                                        sheetRippleTrigger++
+                                        val center = avatarCenterOffset
+                                        val (cx, cy) = if (center != null) {
+                                            center.x to center.y
+                                        } else {
+                                            val loc = IntArray(2)
+                                            view.getLocationInWindow(loc)
+                                            (loc[0] + (view.width / 2f)) to (loc[1] + (view.height / 3f))
+                                        }
+                                        NfcRippleEffect.triggerOnView(view, cx, cy)
+                                        MainActivity.triggerLiquidRipple(cx, cy)
+                                    }
+                                )
+                            }
                             .then(
                                 if (isQrModeActive) {
                                     Modifier

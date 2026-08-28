@@ -256,6 +256,14 @@ class SettingsActivity : ComponentActivity() {
                                     isChecked = isAllowWhenLocked,
                                     onCheckedChange = { viewModel.setMeDropAllowWhenLocked(context, it) },
                                 )
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    IconToggleItem(
+                                        iconRes = R.drawable.rounded_blur_on_24,
+                                        title = stringResource(R.string.feat_medrop_show_ripple),
+                                        isChecked = safeSettings.showRipple,
+                                        onCheckedChange = { viewModel.setMeDropShowRipple(context, it) },
+                                    )
+                                }
                             }
 
                             Text(

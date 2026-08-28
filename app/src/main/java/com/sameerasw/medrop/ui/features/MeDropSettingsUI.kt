@@ -61,7 +61,11 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
+import com.sameerasw.medrop.services.MeDropHceService
+import com.sameerasw.medrop.ui.effects.NfcRippleEffect
 import com.sameerasw.medrop.ui.modifiers.BlurDirection
 import com.sameerasw.medrop.ui.modifiers.progressiveBlur
 import androidx.compose.ui.platform.LocalView

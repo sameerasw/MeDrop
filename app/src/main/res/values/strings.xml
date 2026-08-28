@@ -7,6 +7,7 @@
     <string name="feat_medrop_change_contact">Change Contact</string>
     <string name="feat_medrop_allow_when_locked">Allow when Locked</string>
     <string name="feat_medrop_allow_when_locked_desc">Open MeDrop from the quick tile even when the screen is locked</string>
+    <string name="feat_medrop_show_ripple">Show ripple</string>
     <string name="feat_medrop_tap_to_share">Tap to share</string>
     <string name="feat_medrop_no_contact">No contact selected</string>
     <string name="feat_medrop_no_contact_desc">Tap below to choose a contact to share via NFC</string>

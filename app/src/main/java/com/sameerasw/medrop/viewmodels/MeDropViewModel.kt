@@ -104,6 +104,12 @@ class MeDropViewModel : ViewModel() {
         saveMeDropSettings(context, updated)
     }
 
+    fun setMeDropShowRipple(context: Context, enabled: Boolean) {
+        val current = meDropSettings.value ?: MeDropSettings()
+        val updated = current.copy(showRipple = enabled)
+        saveMeDropSettings(context, updated)
+    }
+
     fun setMeDropUsePhotoForAll(context: Context, enabled: Boolean) {
         val current = meDropSettings.value ?: MeDropSettings()
         val updated = current.copy(usePhotoForAll = enabled)

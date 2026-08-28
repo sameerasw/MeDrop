@@ -448,4 +448,34 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+    override fun onStart() {
+        super.onStart()
+        activeDecorView = window.decorView
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (activeDecorView === window.decorView) {
+            activeDecorView = null
+            activeRippleEffect = null
+        }
+    }
+
+    companion object {
+        private var activeDecorView: android.view.View? = null
+        private var activeRippleEffect: com.sameerasw.medrop.ui.effects.NfcRippleEffect? = null
+
+        fun triggerLiquidRipple(cx: Float, cy: Float) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                val decor = activeDecorView ?: return
+                var ripple = activeRippleEffect
+                if (ripple == null) {
+                    ripple = com.sameerasw.medrop.ui.effects.NfcRippleEffect(decor)
+                    activeRippleEffect = ripple
+                }
+                ripple.animate(cx, cy)
+            }
+        }
+    }
 }
