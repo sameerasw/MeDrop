@@ -35,10 +35,15 @@
     <string name="feat_medrop_section_contact_source">Contact Source</string>
     <string name="feat_medrop_section_photo">Profile Photo</string>
     <string name="feat_medrop_section_fields">What to Share</string>
+    <string name="feat_medrop_section_visible_fields">Visible in this profile</string>
+    <string name="feat_medrop_section_hidden_fields">Hidden fields (tap to add)</string>
     <string name="feat_medrop_address_work">Work</string>
     <string name="feat_medrop_address_home">Home</string>
     <string name="feat_medrop_action_share">Share vCard</string>
     <string name="feat_medrop_action_qr">QR Code</string>
+    <string name="feat_medrop_edit_visibility">Edit visibility</string>
+    <string name="feat_medrop_save_visibility">Save visibility</string>
+    <string name="feat_medrop_no_visible_fields">No fields visible for this profile</string>
     <string name="about_desc_medrop">Share your contact card with another device using NFC — similar to Apple\'s NameDrop. Your phone acts as a virtual NFC card that any NFC-enabled device can read.</string>
 
     <string name="content_desc_back">Back</string>

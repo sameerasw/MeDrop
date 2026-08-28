@@ -38,25 +38,31 @@ fun IconToggleItem(
     subtitle: String? = null,
     icon: Int? = null,
     checked: Boolean? = null,
+    trailingIcon: (@Composable () -> Unit)? = null,
 ) {
     val view = LocalView.current
     val finalIconRes = icon ?: iconRes
     val finalDescription = subtitle ?: description
     val finalIsChecked = checked ?: isChecked
 
-    val onClickAction = {
-        if (enabled) {
-            HapticUtil.performVirtualKeyHaptic(view)
-            if (onClick != null) {
-                onClick()
-            } else {
-                onCheckedChange(!finalIsChecked)
+    val onClickAction: (() -> Unit)? =
+        if (onClick != null || showToggle) {
+            {
+                if (enabled) {
+                    HapticUtil.performVirtualKeyHaptic(view)
+                    if (onClick != null) {
+                        onClick()
+                    } else {
+                        onCheckedChange(!finalIsChecked)
+                    }
+                } else if (onDisabledClick != null) {
+                    HapticUtil.performVirtualKeyHaptic(view)
+                    onDisabledClick()
+                }
             }
-        } else if (onDisabledClick != null) {
-            HapticUtil.performVirtualKeyHaptic(view)
-            onDisabledClick()
+        } else {
+            null
         }
-    }
 
     if (showToggle) {
         if (onClick != null) {
@@ -101,7 +107,7 @@ fun IconToggleItem(
                 trailingContent = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalArrangement = Arrangement.End,
                     ) {
                         VerticalDivider(
                             modifier =
@@ -112,10 +118,10 @@ fun IconToggleItem(
                         )
                         Switch(
                             checked = if (enabled) finalIsChecked else false,
-                            onCheckedChange = { c ->
+                            onCheckedChange = {
                                 if (enabled) {
                                     HapticUtil.performVirtualKeyHaptic(view)
-                                    onCheckedChange(c)
+                                    onCheckedChange(it)
                                 }
                             },
                             enabled = enabled,
@@ -136,16 +142,7 @@ fun IconToggleItem(
             )
         } else {
             ListItem(
-                checked = finalIsChecked && enabled,
-                onCheckedChange = { c ->
-                    if (enabled) {
-                        HapticUtil.performVirtualKeyHaptic(view)
-                        onCheckedChange(c)
-                    } else if (onDisabledClick != null) {
-                        HapticUtil.performVirtualKeyHaptic(view)
-                        onDisabledClick()
-                    }
-                },
+                onClick = onClickAction ?: {},
                 enabled = enabled,
                 modifier = modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -196,8 +193,8 @@ fun IconToggleItem(
         }
     } else {
         ListItem(
-            onClick = onClickAction,
-            enabled = enabled,
+            onClick = onClickAction ?: {},
+            enabled = onClickAction != null && enabled,
             modifier = modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             leadingContent =
@@ -225,6 +222,7 @@ fun IconToggleItem(
                 } else {
                     null
                 },
+            trailingContent = trailingIcon,
             colors =
                 ListItemDefaults.colors(
                     containerColor = MaterialTheme.colorScheme.surfaceBright,

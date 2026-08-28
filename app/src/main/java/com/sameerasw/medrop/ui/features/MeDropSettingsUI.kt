@@ -3,6 +3,8 @@ package com.sameerasw.medrop.ui.features
 import android.graphics.Matrix
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -12,6 +14,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -62,6 +65,7 @@ import com.sameerasw.medrop.R
 import com.sameerasw.medrop.domain.model.MeDropContact
 import com.sameerasw.medrop.domain.model.MeDropProfileType
 import com.sameerasw.medrop.domain.model.MeDropSettings
+import com.sameerasw.medrop.ui.components.buttons.ListExpandToggleButton
 import com.sameerasw.medrop.ui.core.cards.FeatureCard
 import com.sameerasw.medrop.ui.core.cards.IconToggleItem
 import com.sameerasw.medrop.ui.core.containers.RoundedCardContainer
@@ -71,6 +75,13 @@ import com.sameerasw.medrop.utils.HapticUtil
 import com.sameerasw.medrop.utils.MeDropContactPickerHelper
 import com.sameerasw.medrop.viewmodels.MeDropViewModel
 import kotlinx.coroutines.launch
+
+private data class ProfileFieldItem(
+    val id: String,
+    val iconRes: Int,
+    val title: String,
+    val subtitle: String? = null,
+)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -89,6 +100,7 @@ fun MeDropSettingsUI(
     val contact = safeSettings.contact
 
     var isPhotoMenuExpanded by remember { mutableStateOf(false) }
+    var isEditVisibilityMode by remember { mutableStateOf(false) }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -322,175 +334,262 @@ fun MeDropSettingsUI(
                 onClick = onPickContactClick,
             )
         } else {
-            Text(
-                text = stringResource(R.string.feat_medrop_section_fields),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 8.dp, top = 8.dp),
-            )
-            ProfileFieldsList(
+            ProfileFieldsManager(
                 type = selectedTab,
                 contact = contact,
                 settings = safeSettings,
                 viewModel = viewModel,
+                isEditMode = isEditVisibilityMode,
+                onToggleEditMode = {
+                    HapticUtil.performVirtualKeyHaptic(view)
+                    isEditVisibilityMode = !isEditVisibilityMode
+                },
             )
         }
     }
 }
 
 @Composable
-private fun ProfileFieldsList(
+private fun ProfileFieldsManager(
     type: MeDropProfileType,
     contact: MeDropContact,
     settings: MeDropSettings,
     viewModel: MeDropViewModel,
+    isEditMode: Boolean,
+    onToggleEditMode: () -> Unit,
 ) {
     val context = LocalContext.current
+    val view = LocalView.current
 
-    RoundedCardContainer {
+    val allFields = remember(contact) {
+        val list = mutableListOf<ProfileFieldItem>()
         if (!contact.nickname.isNullOrBlank()) {
-            val id = "nickname"
-            IconToggleItem(
-                iconRes = R.drawable.rounded_app_registration_24,
-                title = contact.nickname,
-                subtitle = stringResource(R.string.feat_medrop_field_nickname),
-                isChecked = settings.isEntrySelected(type, id),
-                onCheckedChange = {
-                    viewModel.toggleMeDropProfileEntry(context, type, id, it)
-                },
+            list.add(
+                ProfileFieldItem(
+                    id = "nickname",
+                    iconRes = R.drawable.rounded_app_registration_24,
+                    title = contact.nickname,
+                    subtitle = context.getString(R.string.feat_medrop_field_nickname),
+                )
             )
         }
         if (!contact.pronouns.isNullOrBlank()) {
-            val id = "pronouns"
-            IconToggleItem(
-                iconRes = R.drawable.rounded_heart_smile_24,
-                title = contact.pronouns,
-                subtitle = stringResource(R.string.feat_medrop_field_pronouns),
-                isChecked = settings.isEntrySelected(type, id),
-                onCheckedChange = {
-                    viewModel.toggleMeDropProfileEntry(context, type, id, it)
-                },
+            list.add(
+                ProfileFieldItem(
+                    id = "pronouns",
+                    iconRes = R.drawable.rounded_heart_smile_24,
+                    title = contact.pronouns,
+                    subtitle = context.getString(R.string.feat_medrop_field_pronouns),
+                )
             )
         }
         if (!contact.birthday.isNullOrBlank()) {
-            val id = "birthday"
-            IconToggleItem(
-                iconRes = R.drawable.rounded_calendar_today_24,
-                title = contact.birthday,
-                subtitle = stringResource(R.string.feat_medrop_field_birthday),
-                isChecked = settings.isEntrySelected(type, id),
-                onCheckedChange = {
-                    viewModel.toggleMeDropProfileEntry(context, type, id, it)
-                },
+            list.add(
+                ProfileFieldItem(
+                    id = "birthday",
+                    iconRes = R.drawable.rounded_calendar_today_24,
+                    title = contact.birthday,
+                    subtitle = context.getString(R.string.feat_medrop_field_birthday),
+                )
             )
         }
         contact.getSafePhones().forEachIndexed { i, phone ->
-            val id = "phone_$i"
-            IconToggleItem(
-                iconRes = R.drawable.rounded_call_log_24,
-                title = phone,
-                isChecked = settings.isEntrySelected(type, id),
-                onCheckedChange = {
-                    viewModel.toggleMeDropProfileEntry(context, type, id, it)
-                },
+            list.add(
+                ProfileFieldItem(
+                    id = "phone_$i",
+                    iconRes = R.drawable.rounded_call_log_24,
+                    title = phone,
+                )
             )
         }
         contact.getSafeEmails().forEachIndexed { i, email ->
-            val id = "email_$i"
-            IconToggleItem(
-                iconRes = R.drawable.rounded_mail_24,
-                title = email,
-                isChecked = settings.isEntrySelected(type, id),
-                onCheckedChange = {
-                    viewModel.toggleMeDropProfileEntry(context, type, id, id == "email_0")
-                },
+            list.add(
+                ProfileFieldItem(
+                    id = "email_$i",
+                    iconRes = R.drawable.rounded_mail_24,
+                    title = email,
+                )
             )
         }
         if (!contact.organization.isNullOrBlank()) {
-            val id = "organization"
-            IconToggleItem(
-                iconRes = R.drawable.rounded_work_24,
-                title = contact.organization,
-                subtitle = stringResource(R.string.feat_medrop_field_organization),
-                isChecked = settings.isEntrySelected(type, id),
-                onCheckedChange = {
-                    viewModel.toggleMeDropProfileEntry(context, type, id, it)
-                },
+            list.add(
+                ProfileFieldItem(
+                    id = "organization",
+                    iconRes = R.drawable.rounded_work_24,
+                    title = contact.organization,
+                    subtitle = context.getString(R.string.feat_medrop_field_organization),
+                )
             )
         }
         if (!contact.department.isNullOrBlank()) {
-            val id = "department"
-            IconToggleItem(
-                iconRes = R.drawable.rounded_work_24,
-                title = contact.department,
-                subtitle = stringResource(R.string.feat_medrop_field_department),
-                isChecked = settings.isEntrySelected(type, id),
-                onCheckedChange = {
-                    viewModel.toggleMeDropProfileEntry(context, type, id, it)
-                },
+            list.add(
+                ProfileFieldItem(
+                    id = "department",
+                    iconRes = R.drawable.rounded_work_24,
+                    title = contact.department,
+                    subtitle = context.getString(R.string.feat_medrop_field_department),
+                )
             )
         }
         if (!contact.jobTitle.isNullOrBlank()) {
-            val id = "jobTitle"
-            IconToggleItem(
-                iconRes = R.drawable.rounded_work_24,
-                title = contact.jobTitle,
-                subtitle = stringResource(R.string.feat_medrop_field_job_title),
-                isChecked = settings.isEntrySelected(type, id),
-                onCheckedChange = {
-                    viewModel.toggleMeDropProfileEntry(context, type, id, it)
-                },
+            list.add(
+                ProfileFieldItem(
+                    id = "jobTitle",
+                    iconRes = R.drawable.rounded_work_24,
+                    title = contact.jobTitle,
+                    subtitle = context.getString(R.string.feat_medrop_field_job_title),
+                )
             )
         }
         if (!contact.role.isNullOrBlank()) {
-            val id = "role"
-            IconToggleItem(
-                iconRes = R.drawable.rounded_work_24,
-                title = contact.role,
-                subtitle = stringResource(R.string.feat_medrop_field_role),
-                isChecked = settings.isEntrySelected(type, id),
-                onCheckedChange = {
-                    viewModel.toggleMeDropProfileEntry(context, type, id, it)
-                },
+            list.add(
+                ProfileFieldItem(
+                    id = "role",
+                    iconRes = R.drawable.rounded_work_24,
+                    title = contact.role,
+                    subtitle = context.getString(R.string.feat_medrop_field_role),
+                )
             )
         }
         contact.getSafeAddresses().forEachIndexed { i, addr ->
-            val id = "address_$i"
             val addrType = contact.getSafeAddressTypes().getOrNull(i)
-            val tag = if (addrType == 2) stringResource(R.string.feat_medrop_address_work) else stringResource(R.string.feat_medrop_address_home)
-            IconToggleItem(
-                iconRes = R.drawable.rounded_location_on_24,
-                title = addr.replace("\n", ", "),
-                subtitle = tag,
-                isChecked = settings.isEntrySelected(type, id),
-                onCheckedChange = {
-                    viewModel.toggleMeDropProfileEntry(context, type, id, it)
-                },
+            val tag = if (addrType == 2) context.getString(R.string.feat_medrop_address_work) else context.getString(R.string.feat_medrop_address_home)
+            list.add(
+                ProfileFieldItem(
+                    id = "address_$i",
+                    iconRes = R.drawable.rounded_location_on_24,
+                    title = addr.replace("\n", ", "),
+                    subtitle = tag,
+                )
             )
         }
         contact.getSafeUrls().forEachIndexed { i, url ->
-            val id = "url_$i"
-            IconToggleItem(
-                iconRes = R.drawable.rounded_globe_24,
-                title = url,
-                isChecked = settings.isEntrySelected(type, id),
-                onCheckedChange = {
-                    viewModel.toggleMeDropProfileEntry(context, type, id, it)
-                },
+            list.add(
+                ProfileFieldItem(
+                    id = "url_$i",
+                    iconRes = R.drawable.rounded_globe_24,
+                    title = url,
+                )
             )
         }
         if (!contact.note.isNullOrBlank()) {
-            val id = "note"
-            IconToggleItem(
-                iconRes = R.drawable.rounded_info_24,
-                title = contact.note,
-                isChecked = settings.isEntrySelected(type, id),
-                onCheckedChange = {
-                    viewModel.toggleMeDropProfileEntry(context, type, id, it)
-                },
+            list.add(
+                ProfileFieldItem(
+                    id = "note",
+                    iconRes = R.drawable.rounded_info_24,
+                    title = contact.note,
+                )
             )
         }
+        list
+    }
+
+    val visibleFields = allFields.filter { settings.isEntrySelected(type, it.id) }
+    val hiddenFields = allFields.filter { !settings.isEntrySelected(type, it.id) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(animationSpec = tween(300, easing = LinearOutSlowInEasing)),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        // Visible Fields Section
+        Text(
+            text = if (isEditMode) {
+                stringResource(R.string.feat_medrop_section_visible_fields)
+            } else {
+                stringResource(R.string.feat_medrop_section_fields)
+            },
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 8.dp, top = 8.dp),
+        )
+
+        if (visibleFields.isEmpty()) {
+            RoundedCardContainer {
+                IconToggleItem(
+                    iconRes = R.drawable.rounded_info_24,
+                    title = stringResource(R.string.feat_medrop_no_visible_fields),
+                    showToggle = false,
+                )
+            }
+        } else {
+            RoundedCardContainer {
+                visibleFields.forEach { item ->
+                    IconToggleItem(
+                        iconRes = item.iconRes,
+                        title = item.title,
+                        subtitle = item.subtitle,
+                        showToggle = false,
+                        onClick = if (isEditMode) {
+                            {
+                                HapticUtil.performVirtualKeyHaptic(view)
+                                viewModel.toggleMeDropProfileEntry(context, type, item.id, false)
+                            }
+                        } else null,
+                        trailingIcon = if (isEditMode) {
+                            {
+                                Icon(
+                                    painter = painterResource(R.drawable.rounded_remove_24),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        } else null,
+                    )
+                }
+            }
+        }
+
+        // Hidden Fields Section (in Edit mode)
+        AnimatedVisibility(visible = isEditMode && hiddenFields.isNotEmpty()) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.feat_medrop_section_hidden_fields),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 8.dp, top = 8.dp),
+                )
+
+                RoundedCardContainer {
+                    hiddenFields.forEach { item ->
+                        IconToggleItem(
+                            iconRes = item.iconRes,
+                            title = item.title,
+                            subtitle = item.subtitle,
+                            showToggle = false,
+                            onClick = {
+                                HapticUtil.performVirtualKeyHaptic(view)
+                                viewModel.toggleMeDropProfileEntry(context, type, item.id, true)
+                            },
+                            trailingIcon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.rounded_add_24),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            },
+                        )
+                    }
+                }
+            }
+        }
+
+        // List Expand Toggle Button for Edit/Save Visibility
+        ListExpandToggleButton(
+            isExpanded = isEditMode,
+            onToggle = onToggleEditMode,
+            expandedText = stringResource(R.string.feat_medrop_save_visibility),
+            collapsedText = stringResource(R.string.feat_medrop_edit_visibility),
+        )
     }
 }
