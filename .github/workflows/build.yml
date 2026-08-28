@@ -11,29 +11,40 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
           cache: gradle
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Generate Gradle Wrapper JAR
-        run: gradle wrapper
+      - name: Install Android SDK platform
+        run: sdkmanager "platforms;android-37"
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.0'
 
-      - name: Upload APK Artifact
+      - name: Run unit tests
+        run: gradle test
+
+      - name: Build release APK
+        run: gradle assembleRelease
+
+      - name: Upload release APK
         uses: actions/upload-artifact@v4
         with:
-          name: MeDrop-Debug-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: MeDrop-release-APK
+          path: app/build/outputs/apk/release/*.apk
           retention-days: 7
