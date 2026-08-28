@@ -426,7 +426,7 @@ fun MeDropBottomSheet(
                             },
                             iconProvider = { type ->
                                 val iconRes = when (type) {
-                                    MeDropProfileType.CONTACT -> R.drawable.rounded_contacts_product_24
+                                    MeDropProfileType.CONTACT -> R.drawable.medrop_logo
                                     MeDropProfileType.PROFESSIONAL -> R.drawable.rounded_work_24
                                     MeDropProfileType.CUSTOM -> R.drawable.rounded_id_card_24
                                 }

@@ -287,7 +287,7 @@ class MainActivity : AppCompatActivity() {
             val toolbarItems = enabledTabs.mapIndexed { index, type ->
                 when (type) {
                     MeDropProfileType.CONTACT -> ToolbarItem(
-                        iconRes = R.drawable.rounded_contacts_product_24,
+                        iconRes = R.drawable.medrop_logo,
                         labelRes = R.string.feat_medrop_profile_contact,
                         onClick = {
                             scope.launch {

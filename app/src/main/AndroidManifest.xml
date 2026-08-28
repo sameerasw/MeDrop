@@ -69,7 +69,7 @@
         <service
             android:name=".services.tiles.MeDropTileService"
             android:exported="true"
-            android:icon="@drawable/rounded_nfc_24"
+            android:icon="@drawable/medrop_logo"
             android:label="@string/feat_medrop_title"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>
