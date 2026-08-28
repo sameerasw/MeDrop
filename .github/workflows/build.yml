@@ -36,11 +36,14 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
+      - name: Generate Gradle Wrapper JAR
+        run: gradle wrapper
+
       - name: Run unit tests
-        run: gradle test
+        run: ./gradlew test --no-daemon
 
       - name: Build release APK
-        run: gradle assembleRelease
+        run: ./gradlew assembleRelease --no-daemon
 
       - name: Upload release APK
         uses: actions/upload-artifact@v4
