@@ -86,4 +86,71 @@ object HapticUtil {
             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         }
     }
+
+    fun startScanRumble(context: Context) {
+        if (!isAppHapticsEnabled.value) return
+
+        try {
+            val vibrator =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    val vibratorManager =
+                        context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                    vibratorManager.defaultVibrator
+                } else {
+                    @Suppress("DEPRECATION")
+                    context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // Ramp up in 400ms then loop on max strength
+                val stepCount = 8
+                val stepDuration = 50L
+                val timings = LongArray(stepCount + 1) { if (it < stepCount) stepDuration else 200L }
+                val amplitudes = IntArray(stepCount + 1) { index ->
+                    if (index < stepCount) {
+                        val progress = (index + 1).toFloat() / stepCount.toFloat()
+                        (progress * 255).toInt().coerceIn(60, 255)
+                    } else {
+                        255
+                    }
+                }
+                if (vibrator.hasAmplitudeControl()) {
+                    // repeat from the max intensity index (stepCount)
+                    val effect = VibrationEffect.createWaveform(timings, amplitudes, stepCount)
+                    val attrs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        VibrationAttributes.createForUsage(VibrationAttributes.USAGE_TOUCH)
+                    } else null
+                    if (attrs != null) {
+                        vibrator.vibrate(effect, attrs)
+                    } else {
+                        vibrator.vibrate(effect)
+                    }
+                    return
+                }
+                vibrator.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 1000), 0))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(longArrayOf(0, 1000), 0)
+            }
+        } catch (_: Exception) {}
+    }
+
+    fun stopScanRumble(context: Context) {
+        try {
+            val vibrator =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    val vibratorManager =
+                        context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                    vibratorManager.defaultVibrator
+                } else {
+                    @Suppress("DEPRECATION")
+                    context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                }
+            vibrator.cancel()
+        } catch (_: Exception) {}
+    }
+
+    fun performScanRumbleHaptic(context: Context, durationMs: Long = 500L) {
+        startScanRumble(context)
+    }
 }

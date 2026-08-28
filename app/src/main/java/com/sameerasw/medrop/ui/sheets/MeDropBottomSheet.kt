@@ -43,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,6 +58,7 @@ import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -81,6 +83,7 @@ import com.sameerasw.medrop.MainActivity
 import com.sameerasw.medrop.R
 import com.sameerasw.medrop.domain.model.MeDropProfileType
 import com.sameerasw.medrop.domain.model.MeDropSettings
+import com.sameerasw.medrop.services.MeDropHceService
 import com.sameerasw.medrop.ui.core.cards.IconToggleItem
 import com.sameerasw.medrop.ui.core.containers.RoundedCardContainer
 import com.sameerasw.medrop.ui.core.pickers.SegmentedPicker
@@ -149,13 +152,25 @@ fun MeDropBottomSheet(
         }
     }
 
-    LaunchedEffect(contact) {
+    val isScanActive by MeDropHceService.isScanActive.collectAsState(initial = false)
+
+    val hapticScanIntensity by animateFloatAsState(
+        targetValue = if (isScanActive) 1f else 0f,
+        animationSpec = tween(400, easing = LinearOutSlowInEasing),
+        label = "haptic_intensity"
+    )
+
+    LaunchedEffect(contact, isScanActive) {
         if (contact != null) {
             while (true) {
-                delay(500L)
-                withContext(Dispatchers.Default) {
+                val intensity = hapticScanIntensity
+                val currentDelay = (500L - (400L * intensity)).toLong().coerceIn(100L, 500L)
+                if (intensity > 0.05f) {
+                    HapticUtil.performCustomHaptic(view, 0.4f + (0.6f * intensity))
+                } else {
                     HapticUtil.performLightHaptic(view)
                 }
+                delay(currentDelay)
             }
         }
     }
@@ -286,14 +301,30 @@ fun MeDropBottomSheet(
                     }
                 }
 
+                val scanScale by animateFloatAsState(
+                    targetValue = if (isScanActive) 1.15f else 1f,
+                    animationSpec = androidx.compose.animation.core.spring(
+                        dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                        stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+                    ),
+                    label = "scan_scale"
+                )
+
+                val targetPhotoSize = if (isQrModeActive) 80.dp else (200.dp * scanScale)
                 val qrContainerSize by animateDpAsState(
-                    targetValue = if (isQrModeActive) 340.dp else 200.dp,
-                    animationSpec = tween(400, easing = LinearOutSlowInEasing),
+                    targetValue = if (isQrModeActive) 340.dp else targetPhotoSize,
+                    animationSpec = androidx.compose.animation.core.spring(
+                        dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                        stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+                    ),
                     label = "qr_container_size"
                 )
                 val photoAvatarSize by animateDpAsState(
-                    targetValue = if (isQrModeActive) 80.dp else 200.dp,
-                    animationSpec = tween(400, easing = LinearOutSlowInEasing),
+                    targetValue = if (isQrModeActive) 80.dp else targetPhotoSize,
+                    animationSpec = androidx.compose.animation.core.spring(
+                        dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                        stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+                    ),
                     label = "photo_avatar_size"
                 )
                 val qrAlpha by animateFloatAsState(
@@ -306,9 +337,14 @@ fun MeDropBottomSheet(
                     modifier = Modifier
                         .padding(top = 12.dp)
                         .size(qrContainerSize)
-                        .clip(Shapes.large)
-                        .background(if (isQrModeActive) MaterialTheme.colorScheme.surfaceBright else Color.Transparent)
-                        .padding(if (isQrModeActive) 12.dp else 0.dp),
+                        .then(
+                            if (isQrModeActive) {
+                                Modifier
+                                    .clip(Shapes.large)
+                                    .background(MaterialTheme.colorScheme.surfaceBright)
+                                    .padding(12.dp)
+                            } else Modifier
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     if (isQrModeActive) {
@@ -769,7 +805,7 @@ fun MeDropBottomSheet(
                     }
                 }
 
-                NfcBroadcastIndicator()
+                NfcBroadcastIndicator(isScanActive = isScanActive)
 
                 Row(
                     modifier = Modifier
@@ -917,13 +953,14 @@ fun MeDropBottomSheet(
 }
 
 @Composable
-private fun NfcBroadcastIndicator() {
+private fun NfcBroadcastIndicator(isScanActive: Boolean = false) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
+            .animateContentSize()
     ) {
         Icon(
             painter = painterResource(id = R.drawable.rounded_contactless_24),
@@ -933,7 +970,11 @@ private fun NfcBroadcastIndicator() {
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = stringResource(R.string.feat_medrop_hold_near),
+            text = if (isScanActive) {
+                stringResource(R.string.feat_medrop_scanning)
+            } else {
+                stringResource(R.string.feat_medrop_hold_near)
+            },
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary
         )

@@ -7,6 +7,12 @@ import android.os.Bundle
 import com.google.gson.Gson
 import com.sameerasw.medrop.data.repository.MeDropRepository
 import com.sameerasw.medrop.domain.model.MeDropSettings
+import com.sameerasw.medrop.utils.HapticUtil
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MeDropHceService : HostApduService() {
 
@@ -48,6 +54,8 @@ class MeDropHceService : HostApduService() {
 
         var pendingVCardBytes: ByteArray? = null
 
+        val isScanActive = kotlinx.coroutines.flow.MutableStateFlow(false)
+
         private fun ndefWrap(payload: ByteArray): ByteArray {
             val record = NdefRecord.createMime("text/vcard", payload)
             val message = NdefMessage(record)
@@ -62,6 +70,7 @@ class MeDropHceService : HostApduService() {
 
         fun clearVCard() {
             pendingVCardBytes = null
+            isScanActive.value = false
         }
     }
 
@@ -84,6 +93,8 @@ class MeDropHceService : HostApduService() {
             } catch (_: Exception) {}
         }
     }
+
+    private var scanResetJob: Job? = null
 
     override fun processCommandApdu(commandApdu: ByteArray, extras: Bundle?): ByteArray {
         if (commandApdu.size < 4) return SW_UNKNOWN_CMD
@@ -123,6 +134,17 @@ class MeDropHceService : HostApduService() {
                 } else {
                     return SW_UNKNOWN_CMD
                 }
+
+                if (selectedFile === pendingVCardBytes) {
+                    if (!isScanActive.value) {
+                        isScanActive.value = true
+                    }
+                    scanResetJob?.cancel()
+                    scanResetJob = CoroutineScope(Dispatchers.Main).launch {
+                        delay(1200L)
+                        isScanActive.value = false
+                    }
+                }
                 
                 if (offset >= data.size) return SW_FILE_NOT_FOUND
                 val end = minOf(offset + length, data.size)
@@ -136,6 +158,11 @@ class MeDropHceService : HostApduService() {
 
     override fun onDeactivated(reason: Int) {
         selectedFile = null
+        scanResetJob?.cancel()
+        scanResetJob = CoroutineScope(Dispatchers.Main).launch {
+            delay(400L)
+            isScanActive.value = false
+        }
     }
 
     private fun isSelectAidCommand(apdu: ByteArray): Boolean {
