@@ -84,7 +84,6 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.gson)
     implementation(libs.zxing.core)
-    implementation(libs.hiddenapibypass)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -15,7 +15,6 @@ coil = "2.7.0"
 gson = "2.14.0"
 graphicsShapes = "1.1.0"
 zxing = "3.5.3"
-hiddenapibypass = "6.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -41,7 +40,6 @@ androidx-graphics-shapes = { group = "androidx.graphics", name = "graphics-shape
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
-hiddenapibypass = { group = "org.lsposed.hiddenapibypass", name = "hiddenapibypass", version.ref = "hiddenapibypass" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
