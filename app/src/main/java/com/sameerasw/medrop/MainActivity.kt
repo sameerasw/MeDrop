@@ -33,7 +33,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -57,6 +56,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sameerasw.medrop.domain.model.MeDropProfileType
+import com.sameerasw.medrop.domain.model.MeDropSettings
 import com.sameerasw.medrop.ui.activities.SettingsActivity
 import com.sameerasw.medrop.ui.components.MeDropFloatingToolbar
 import com.sameerasw.medrop.ui.components.ToolbarItem
@@ -71,7 +71,6 @@ import com.sameerasw.medrop.utils.MeDropContactPickerHelper
 import com.sameerasw.medrop.utils.PermissionUtils
 import com.sameerasw.medrop.viewmodels.MeDropViewModel
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : AppCompatActivity() {
@@ -122,6 +121,8 @@ class MainActivity : AppCompatActivity() {
             val isPitchBlackThemeEnabled by viewModel.isPitchBlackThemeEnabled
             val isBlurEnabled by viewModel.isBlurEnabled
             val hasContactsPerm by viewModel.hasContactsPermission
+            val settings by viewModel.meDropSettings
+            val safeSettings = settings ?: MeDropSettings()
 
             val density = LocalDensity.current
             val minHeaderHeight = 200.dp
@@ -131,18 +132,28 @@ class MainActivity : AppCompatActivity() {
             val view = LocalView.current
             val scope = rememberCoroutineScope()
 
-            val tabs = remember {
-                listOf(
-                    MeDropProfileType.CONTACT,
-                    MeDropProfileType.PROFESSIONAL,
-                    MeDropProfileType.CUSTOM
-                )
+            val enabledTabs = remember(safeSettings) {
+                val list = mutableListOf(MeDropProfileType.CONTACT)
+                if (safeSettings.professionalProfile.enabled) {
+                    list.add(MeDropProfileType.PROFESSIONAL)
+                }
+                if (safeSettings.customProfile.enabled) {
+                    list.add(MeDropProfileType.CUSTOM)
+                }
+                list
             }
 
             val pagerState = rememberPagerState(
                 initialPage = 0,
-                pageCount = { tabs.size }
+                pageCount = { enabledTabs.size }
             )
+
+            // Adjust pager page if tabs count changes
+            LaunchedEffect(enabledTabs) {
+                if (pagerState.currentPage >= enabledTabs.size) {
+                    pagerState.scrollToPage(0)
+                }
+            }
 
             // Haptics on tab switch
             LaunchedEffect(pagerState) {
@@ -234,35 +245,37 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-            val toolbarItems = listOf(
-                ToolbarItem(
-                    iconRes = R.drawable.rounded_contacts_product_24,
-                    labelRes = R.string.feat_medrop_profile_contact,
-                    onClick = {
-                        scope.launch {
-                            pagerState.animateScrollToPage(0, animationSpec = tween(300))
+            val toolbarItems = enabledTabs.mapIndexed { index, type ->
+                when (type) {
+                    MeDropProfileType.CONTACT -> ToolbarItem(
+                        iconRes = R.drawable.rounded_contacts_product_24,
+                        labelRes = R.string.feat_medrop_profile_contact,
+                        onClick = {
+                            scope.launch {
+                                pagerState.animateScrollToPage(index, animationSpec = tween(300))
+                            }
                         }
-                    }
-                ),
-                ToolbarItem(
-                    iconRes = R.drawable.rounded_work_24,
-                    labelRes = R.string.feat_medrop_profile_professional,
-                    onClick = {
-                        scope.launch {
-                            pagerState.animateScrollToPage(1, animationSpec = tween(300))
+                    )
+                    MeDropProfileType.PROFESSIONAL -> ToolbarItem(
+                        iconRes = R.drawable.rounded_work_24,
+                        labelRes = R.string.feat_medrop_profile_professional,
+                        onClick = {
+                            scope.launch {
+                                pagerState.animateScrollToPage(index, animationSpec = tween(300))
+                            }
                         }
-                    }
-                ),
-                ToolbarItem(
-                    iconRes = R.drawable.rounded_id_card_24,
-                    labelRes = R.string.feat_medrop_profile_custom,
-                    onClick = {
-                        scope.launch {
-                            pagerState.animateScrollToPage(2, animationSpec = tween(300))
+                    )
+                    MeDropProfileType.CUSTOM -> ToolbarItem(
+                        iconRes = R.drawable.rounded_id_card_24,
+                        labelRes = R.string.feat_medrop_profile_custom,
+                        onClick = {
+                            scope.launch {
+                                pagerState.animateScrollToPage(index, animationSpec = tween(300))
+                            }
                         }
-                    }
-                )
-            )
+                    )
+                }
+            }
 
             MeDropTheme(pitchBlackTheme = isPitchBlackThemeEnabled) {
                 Scaffold(
@@ -291,7 +304,7 @@ class MainActivity : AppCompatActivity() {
                             state = pagerState,
                             modifier = Modifier.fillMaxSize(),
                         ) { page ->
-                            val currentProfileType = tabs[page]
+                            val currentProfileType = enabledTabs.getOrNull(page) ?: MeDropProfileType.CONTACT
                             Column(
                                 modifier =
                                     Modifier
@@ -332,7 +345,7 @@ class MainActivity : AppCompatActivity() {
 
                         MeDropFloatingToolbar(
                             items = toolbarItems,
-                            selectedIndex = pagerState.currentPage,
+                            selectedIndex = pagerState.currentPage.coerceIn(0, toolbarItems.size - 1),
                             fabIconRes = R.drawable.rounded_settings_24,
                             fabAction = {
                                 HapticUtil.performVirtualKeyHaptic(view)

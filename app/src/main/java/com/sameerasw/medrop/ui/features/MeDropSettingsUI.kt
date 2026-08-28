@@ -2,14 +2,12 @@ package com.sameerasw.medrop.ui.features
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -314,75 +312,61 @@ private fun NonDefaultProfileTabContent(
     val context = LocalContext.current
     val profile = settings.getProfile(type)
 
-    RoundedCardContainer {
-        IconToggleItem(
-            iconRes = R.drawable.rounded_person_24,
-            title = stringResource(R.string.feat_medrop_profile_enabled),
-            description = stringResource(R.string.feat_medrop_profile_enabled_desc),
-            isChecked = profile.enabled,
-            onCheckedChange = {
-                viewModel.setMeDropProfileEnabled(context, type, it)
-            },
-        )
-    }
-
-    AnimatedVisibility(visible = profile.enabled) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            if (!settings.usePhotoForAll) {
-                Text(
-                    text = stringResource(R.string.feat_medrop_section_photo),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 8.dp, top = 8.dp),
-                )
-                RoundedCardContainer {
-                    IconToggleItem(
-                        iconRes = R.drawable.rounded_contacts_product_24,
-                        title = stringResource(R.string.feat_medrop_include_photo),
-                        isChecked = settings.isEntrySelected(type, "photo"),
-                        onCheckedChange = {
-                            viewModel.toggleMeDropProfileEntry(context, type, "photo", it)
-                        },
-                    )
-                    IconToggleItem(
-                        iconRes = R.drawable.rounded_add_photo_alternate_24,
-                        title = stringResource(R.string.feat_medrop_choose_custom_photo),
-                        showToggle = false,
-                        onClick = onPickPhoto,
-                    )
-                    if (!profile.photoUri.isNullOrBlank()) {
-                        IconToggleItem(
-                            iconRes = R.drawable.rounded_delete_24,
-                            title = stringResource(R.string.feat_medrop_remove_custom_photo),
-                            showToggle = false,
-                            onClick = {
-                                viewModel.updateMeDropProfilePhoto(context, type, null)
-                            },
-                        )
-                    }
-                }
-            }
-
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        if (!settings.usePhotoForAll) {
             Text(
-                text = stringResource(R.string.feat_medrop_section_fields),
+                text = stringResource(R.string.feat_medrop_section_photo),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 8.dp, top = 8.dp),
             )
-            ProfileFieldsList(
-                type = type,
-                contact = contact,
-                settings = settings,
-                viewModel = viewModel,
-            )
+            RoundedCardContainer {
+                IconToggleItem(
+                    iconRes = R.drawable.rounded_contacts_product_24,
+                    title = stringResource(R.string.feat_medrop_include_photo),
+                    isChecked = settings.isEntrySelected(type, "photo"),
+                    onCheckedChange = {
+                        viewModel.toggleMeDropProfileEntry(context, type, "photo", it)
+                    },
+                )
+                IconToggleItem(
+                    iconRes = R.drawable.rounded_add_photo_alternate_24,
+                    title = stringResource(R.string.feat_medrop_choose_custom_photo),
+                    showToggle = false,
+                    onClick = onPickPhoto,
+                )
+                if (!profile.photoUri.isNullOrBlank()) {
+                    IconToggleItem(
+                        iconRes = R.drawable.rounded_delete_24,
+                        title = stringResource(R.string.feat_medrop_remove_custom_photo),
+                        showToggle = false,
+                        onClick = {
+                            viewModel.updateMeDropProfilePhoto(context, type, null)
+                        },
+                    )
+                }
+            }
         }
+
+        Text(
+            text = stringResource(R.string.feat_medrop_section_fields),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 8.dp, top = 8.dp),
+        )
+        ProfileFieldsList(
+            type = type,
+            contact = contact,
+            settings = settings,
+            viewModel = viewModel,
+        )
     }
 }
 

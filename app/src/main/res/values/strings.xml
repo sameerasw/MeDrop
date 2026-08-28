@@ -27,11 +27,11 @@
     <string name="feat_medrop_nfc_disabled">NFC is disabled. Enable it in Settings to share.</string>
     <string name="feat_medrop_profile_contact">Contact</string>
     <string name="feat_medrop_profile_professional">Professional</string>
+    <string name="feat_medrop_profile_professional_desc">Share work-focused details like title, company, and email</string>
     <string name="feat_medrop_profile_custom">Custom</string>
+    <string name="feat_medrop_profile_custom_desc">Customizable profile with custom fields and photo</string>
     <string name="feat_medrop_use_photo_for_all">Use for all profiles</string>
     <string name="feat_medrop_use_photo_for_all_desc">Use the contact photo across all profiles</string>
-    <string name="feat_medrop_profile_enabled">Enable this profile</string>
-    <string name="feat_medrop_profile_enabled_desc">Make this profile available when sharing via NFC</string>
     <string name="feat_medrop_section_contact_source">Contact Source</string>
     <string name="feat_medrop_section_photo">Profile Photo</string>
     <string name="feat_medrop_section_fields">What to Share</string>
@@ -48,6 +48,7 @@
 
     <string name="settings_title">Settings</string>
     <string name="settings_section_general">General</string>
+    <string name="settings_section_more_profiles">More profiles</string>
     <string name="settings_section_appearance">Appearance</string>
     <string name="setting_pitch_black_theme_title">Pitch black theme</string>
     <string name="setting_pitch_black_theme_desc">Use pure black background in dark mode</string>

@@ -48,6 +48,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sameerasw.medrop.R
+import com.sameerasw.medrop.domain.model.MeDropProfileType
 import com.sameerasw.medrop.ui.components.MeDropFloatingToolbar
 import com.sameerasw.medrop.ui.core.cards.FeatureCard
 import com.sameerasw.medrop.ui.core.cards.IconToggleItem
@@ -114,7 +115,8 @@ class SettingsActivity : ComponentActivity() {
             val isAllowWhenLocked by viewModel.isMeDropAllowWhenLocked
             val hasContactsPerm by viewModel.hasContactsPermission
             val settings by viewModel.meDropSettings
-            val currentContact = settings?.contact
+            val safeSettings = settings ?: com.sameerasw.medrop.domain.model.MeDropSettings()
+            val currentContact = safeSettings.contact
             val density = LocalDensity.current
 
             var showPermissionsSheet by remember { mutableStateOf(false) }
@@ -204,6 +206,30 @@ class SettingsActivity : ComponentActivity() {
                                 iconRes = R.drawable.rounded_contacts_product_24,
                                 onClick = onPickContactClick,
                             )
+
+                            Text(
+                                text = stringResource(R.string.settings_section_more_profiles),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(start = 8.dp),
+                            )
+
+                            RoundedCardContainer {
+                                IconToggleItem(
+                                    iconRes = R.drawable.rounded_work_24,
+                                    title = stringResource(R.string.feat_medrop_profile_professional),
+                                    description = stringResource(R.string.feat_medrop_profile_professional_desc),
+                                    isChecked = safeSettings.professionalProfile.enabled,
+                                    onCheckedChange = { viewModel.setMeDropProfileEnabled(context, MeDropProfileType.PROFESSIONAL, it) },
+                                )
+                                IconToggleItem(
+                                    iconRes = R.drawable.rounded_id_card_24,
+                                    title = stringResource(R.string.feat_medrop_profile_custom),
+                                    description = stringResource(R.string.feat_medrop_profile_custom_desc),
+                                    isChecked = safeSettings.customProfile.enabled,
+                                    onCheckedChange = { viewModel.setMeDropProfileEnabled(context, MeDropProfileType.CUSTOM, it) },
+                                )
+                            }
 
                             Text(
                                 text = stringResource(R.string.settings_section_general),
