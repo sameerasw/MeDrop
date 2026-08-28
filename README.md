@@ -14,7 +14,7 @@ Share your contact with other easily with NFC or QR code.
 </p>
 
 # Join internal testing on Google Play
-- First join this Google group.
+- First join [this Google group](https://groups.google.com/u/3/g/madebysameerasw).
 
 - Then, Using the same Google account, You can start testing MeDrop from here:
    ### [Android](https://play.google.com/store/apps/details?id=com.sameerasw.medrop) | [Web](https://play.google.com/store/apps/details?id=com.sameerasw.medrop)
