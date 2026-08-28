@@ -240,6 +240,13 @@ class SettingsActivity : ComponentActivity() {
 
                             RoundedCardContainer {
                                 IconToggleItem(
+                                    iconRes = R.drawable.rounded_share_24,
+                                    title = stringResource(R.string.feat_medrop_use_photo_for_all),
+                                    description = stringResource(R.string.feat_medrop_use_photo_for_all_desc),
+                                    isChecked = safeSettings.usePhotoForAll,
+                                    onCheckedChange = { viewModel.setMeDropUsePhotoForAll(context, it) },
+                                )
+                                IconToggleItem(
                                     iconRes = R.drawable.rounded_lock_24,
                                     title = stringResource(R.string.feat_medrop_allow_when_locked),
                                     description = stringResource(R.string.feat_medrop_allow_when_locked_desc),

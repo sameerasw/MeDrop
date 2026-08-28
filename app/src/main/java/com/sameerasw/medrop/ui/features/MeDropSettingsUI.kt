@@ -1,7 +1,11 @@
 package com.sameerasw.medrop.ui.features
 
+import android.graphics.Matrix
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
@@ -12,19 +16,31 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -35,8 +51,12 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.graphics.shapes.Morph
+import androidx.graphics.shapes.toPath
 import coil.compose.AsyncImage
 import com.sameerasw.medrop.R
 import com.sameerasw.medrop.domain.model.MeDropContact
@@ -45,12 +65,14 @@ import com.sameerasw.medrop.domain.model.MeDropSettings
 import com.sameerasw.medrop.ui.core.cards.FeatureCard
 import com.sameerasw.medrop.ui.core.cards.IconToggleItem
 import com.sameerasw.medrop.ui.core.containers.RoundedCardContainer
+import com.sameerasw.medrop.ui.core.menus.SegmentedDropdownMenu
+import com.sameerasw.medrop.ui.core.menus.SegmentedDropdownMenuItem
 import com.sameerasw.medrop.utils.HapticUtil
 import com.sameerasw.medrop.utils.MeDropContactPickerHelper
 import com.sameerasw.medrop.viewmodels.MeDropViewModel
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MeDropSettingsUI(
     viewModel: MeDropViewModel,
@@ -66,6 +88,8 @@ fun MeDropSettingsUI(
     val safeSettings = settings ?: MeDropSettings()
     val contact = safeSettings.contact
 
+    var isPhotoMenuExpanded by remember { mutableStateOf(false) }
+
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
@@ -80,6 +104,46 @@ fun MeDropSettingsUI(
     }
 
     val currentPhotoUri = safeSettings.getEffectivePhotoUri(selectedTab)
+
+    val targetPolygon = when (selectedTab) {
+        MeDropProfileType.CONTACT -> MaterialShapes.Cookie12Sided
+        MeDropProfileType.PROFESSIONAL -> MaterialShapes.Pill
+        MeDropProfileType.CUSTOM -> MaterialShapes.Cookie4Sided
+    }
+
+    val previousPolygon = remember { mutableStateOf(targetPolygon) }
+    val currentPolygon = remember { mutableStateOf(targetPolygon) }
+    val morphProgress = remember { Animatable(1f) }
+
+    LaunchedEffect(targetPolygon) {
+        if (targetPolygon != currentPolygon.value) {
+            previousPolygon.value = currentPolygon.value
+            currentPolygon.value = targetPolygon
+            morphProgress.snapTo(0f)
+            morphProgress.animateTo(1f, animationSpec = tween(400, easing = LinearOutSlowInEasing))
+        }
+    }
+
+    val morph = remember(previousPolygon.value, currentPolygon.value) {
+        Morph(previousPolygon.value, currentPolygon.value)
+    }
+
+    val animatedShape = remember(morph, morphProgress.value) {
+        object : Shape {
+            override fun createOutline(
+                size: Size,
+                layoutDirection: LayoutDirection,
+                density: Density
+            ): Outline {
+                val matrix = Matrix().apply {
+                    postScale(size.width, size.height)
+                }
+                val androidPath = morph.toPath(morphProgress.value)
+                androidPath.transform(matrix)
+                return Outline.Generic(androidPath.asComposePath())
+            }
+        }
+    }
 
     Column(
         modifier = modifier
@@ -97,11 +161,11 @@ fun MeDropSettingsUI(
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .clip(CircleShape)
+                    .size(headerHeight - 16.dp)
+                    .clip(animatedShape)
                     .clickable {
                         HapticUtil.performVirtualKeyHaptic(view)
-                        photoPickerLauncher.launch("image/*")
+                        isPhotoMenuExpanded = true
                     },
                 contentAlignment = Alignment.Center,
             ) {
@@ -138,6 +202,71 @@ fun MeDropSettingsUI(
                             contentDescription = null,
                             modifier = Modifier.size(64.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
+            // Edit button at bottom-right of photo area
+            Box(
+                modifier = Modifier
+                    .size(headerHeight - 16.dp),
+                contentAlignment = Alignment.BottomEnd,
+            ) {
+                IconButton(
+                    onClick = {
+                        HapticUtil.performVirtualKeyHaptic(view)
+                        isPhotoMenuExpanded = true
+                    },
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceBright,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                    ),
+                    modifier = Modifier
+                        .size(44.dp)
+                        .offset(x = (-4).dp, y = (-4).dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.rounded_edit_24),
+                        contentDescription = stringResource(R.string.feat_medrop_choose_custom_photo),
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+
+                SegmentedDropdownMenu(
+                    expanded = isPhotoMenuExpanded,
+                    onDismissRequest = { isPhotoMenuExpanded = false },
+                ) {
+                    SegmentedDropdownMenuItem(
+                        text = { Text(stringResource(R.string.feat_medrop_choose_custom_photo)) },
+                        onClick = {
+                            isPhotoMenuExpanded = false
+                            HapticUtil.performVirtualKeyHaptic(view)
+                            photoPickerLauncher.launch("image/*")
+                        },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(R.drawable.rounded_add_photo_alternate_24),
+                                contentDescription = null,
+                            )
+                        },
+                    )
+
+                    val customPhotoOnProfile = safeSettings.getProfile(selectedTab).photoUri
+                    if (!customPhotoOnProfile.isNullOrBlank() || (!currentPhotoUri.isNullOrBlank() && selectedTab == MeDropProfileType.CONTACT)) {
+                        SegmentedDropdownMenuItem(
+                            text = { Text(stringResource(R.string.feat_medrop_remove_custom_photo)) },
+                            onClick = {
+                                isPhotoMenuExpanded = false
+                                HapticUtil.performVirtualKeyHaptic(view)
+                                viewModel.updateMeDropProfilePhoto(context, selectedTab, null)
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.rounded_delete_24),
+                                    contentDescription = null,
+                                )
+                            },
                         )
                     }
                 }
@@ -193,180 +322,21 @@ fun MeDropSettingsUI(
                 onClick = onPickContactClick,
             )
         } else {
-            when (selectedTab) {
-                MeDropProfileType.CONTACT -> {
-                    ContactTabContent(
-                        contact = contact,
-                        settings = safeSettings,
-                        viewModel = viewModel,
-                        onPickPhoto = {
-                            photoPickerLauncher.launch("image/*")
-                        },
-                    )
-                }
-                MeDropProfileType.PROFESSIONAL -> {
-                    NonDefaultProfileTabContent(
-                        type = MeDropProfileType.PROFESSIONAL,
-                        contact = contact,
-                        settings = safeSettings,
-                        viewModel = viewModel,
-                        onPickPhoto = {
-                            photoPickerLauncher.launch("image/*")
-                        },
-                    )
-                }
-                MeDropProfileType.CUSTOM -> {
-                    NonDefaultProfileTabContent(
-                        type = MeDropProfileType.CUSTOM,
-                        contact = contact,
-                        settings = safeSettings,
-                        viewModel = viewModel,
-                        onPickPhoto = {
-                            photoPickerLauncher.launch("image/*")
-                        },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ContactTabContent(
-    contact: MeDropContact,
-    settings: MeDropSettings,
-    viewModel: MeDropViewModel,
-    onPickPhoto: () -> Unit,
-) {
-    val context = LocalContext.current
-
-    Text(
-        text = stringResource(R.string.feat_medrop_section_photo),
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 8.dp, top = 8.dp),
-    )
-    RoundedCardContainer {
-        IconToggleItem(
-            iconRes = R.drawable.rounded_contacts_product_24,
-            title = stringResource(R.string.feat_medrop_include_photo),
-            isChecked = settings.isEntrySelected(MeDropProfileType.CONTACT, "photo"),
-            onCheckedChange = {
-                viewModel.toggleMeDropProfileEntry(context, MeDropProfileType.CONTACT, "photo", it)
-            },
-        )
-        IconToggleItem(
-            iconRes = R.drawable.rounded_share_24,
-            title = stringResource(R.string.feat_medrop_use_photo_for_all),
-            description = stringResource(R.string.feat_medrop_use_photo_for_all_desc),
-            isChecked = settings.usePhotoForAll,
-            onCheckedChange = {
-                viewModel.setMeDropUsePhotoForAll(context, it)
-            },
-        )
-        IconToggleItem(
-            iconRes = R.drawable.rounded_add_photo_alternate_24,
-            title = stringResource(R.string.feat_medrop_choose_custom_photo),
-            showToggle = false,
-            onClick = onPickPhoto,
-        )
-        val photoUri = settings.contactProfile.photoUri
-        if (!photoUri.isNullOrBlank()) {
-            IconToggleItem(
-                iconRes = R.drawable.rounded_delete_24,
-                title = stringResource(R.string.feat_medrop_remove_custom_photo),
-                showToggle = false,
-                onClick = {
-                    viewModel.updateMeDropProfilePhoto(context, MeDropProfileType.CONTACT, null)
-                },
-            )
-        }
-    }
-
-    Text(
-        text = stringResource(R.string.feat_medrop_section_fields),
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 8.dp, top = 8.dp),
-    )
-    ProfileFieldsList(
-        type = MeDropProfileType.CONTACT,
-        contact = contact,
-        settings = settings,
-        viewModel = viewModel,
-    )
-}
-
-@Composable
-private fun NonDefaultProfileTabContent(
-    type: MeDropProfileType,
-    contact: MeDropContact,
-    settings: MeDropSettings,
-    viewModel: MeDropViewModel,
-    onPickPhoto: () -> Unit,
-) {
-    val context = LocalContext.current
-    val profile = settings.getProfile(type)
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        if (!settings.usePhotoForAll) {
             Text(
-                text = stringResource(R.string.feat_medrop_section_photo),
+                text = stringResource(R.string.feat_medrop_section_fields),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 8.dp, top = 8.dp),
             )
-            RoundedCardContainer {
-                IconToggleItem(
-                    iconRes = R.drawable.rounded_contacts_product_24,
-                    title = stringResource(R.string.feat_medrop_include_photo),
-                    isChecked = settings.isEntrySelected(type, "photo"),
-                    onCheckedChange = {
-                        viewModel.toggleMeDropProfileEntry(context, type, "photo", it)
-                    },
-                )
-                IconToggleItem(
-                    iconRes = R.drawable.rounded_add_photo_alternate_24,
-                    title = stringResource(R.string.feat_medrop_choose_custom_photo),
-                    showToggle = false,
-                    onClick = onPickPhoto,
-                )
-                if (!profile.photoUri.isNullOrBlank()) {
-                    IconToggleItem(
-                        iconRes = R.drawable.rounded_delete_24,
-                        title = stringResource(R.string.feat_medrop_remove_custom_photo),
-                        showToggle = false,
-                        onClick = {
-                            viewModel.updateMeDropProfilePhoto(context, type, null)
-                        },
-                    )
-                }
-            }
+            ProfileFieldsList(
+                type = selectedTab,
+                contact = contact,
+                settings = safeSettings,
+                viewModel = viewModel,
+            )
         }
-
-        Text(
-            text = stringResource(R.string.feat_medrop_section_fields),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 8.dp, top = 8.dp),
-        )
-        ProfileFieldsList(
-            type = type,
-            contact = contact,
-            settings = settings,
-            viewModel = viewModel,
-        )
     }
 }
 
