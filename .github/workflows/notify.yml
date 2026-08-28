@@ -1,0 +1,113 @@
+name: Telegram Notify
+
+on:
+  release:
+    types: [published]
+  issues:
+    types: [opened, closed]
+  pull_request_target:
+    types: [opened, closed, reopened]
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Gather and Clean Data
+        id: info
+        env:
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TOPIC_ID: ${{ secrets.TELEGRAM_TOPIC_ID }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_URL: ${{ github.event.release.html_url }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_MERGED: ${{ github.event.pull_request.merged }}
+          PR_ADDITIONS: ${{ github.event.pull_request.additions }}
+          PR_DELETIONS: ${{ github.event.pull_request.deletions }}
+          EVENT_ACTION: ${{ github.event.action }}
+          EVENT_SENDER: ${{ github.event.sender.login }}
+        run: |
+          echo "final_chat_id=${CHAT_ID:- -1001653455300}" >> $GITHUB_OUTPUT
+          echo "final_topic_id=${TOPIC_ID:-71370}" >> $GITHUB_OUTPUT
+
+          REPO="$GITHUB_REPOSITORY"
+          EVENT="$GITHUB_EVENT_NAME"
+          
+          if [[ "$EVENT" == "release" || "$EVENT" == "workflow_dispatch" ]]; then
+            if [[ "$EVENT" == "workflow_dispatch" ]]; then
+              DATA=$(curl -s https://api.github.com/repos/$REPO/releases/latest)
+              RAW_BODY=$(echo "$DATA" | jq -r .body)
+              TAG=$(echo "$DATA" | jq -r .tag_name)
+              URL=$(echo "$DATA" | jq -r .html_url)
+            else
+              RAW_BODY="$RELEASE_BODY"
+              TAG="$RELEASE_TAG"
+              URL="$RELEASE_URL"
+            fi
+            
+            export RAW_BODY
+            CLEAN_BODY=$(python3 .github/scripts/clean_release_notes.py)
+
+            {
+              echo "full_message<<EOF"
+              echo "🚀 <b>New Release: $REPO $TAG</b>"
+              echo "<a href='$URL'>View Release Details</a>"
+              echo ""
+              echo "<b>Release notes:</b>"
+              echo "$CLEAN_BODY"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+
+          elif [[ "$EVENT" == "issues" ]]; then
+            ACTION="$EVENT_ACTION"
+            STATUS=$([[ "$ACTION" == "opened" ]] && echo "🟢 NEW ISSUE" || echo "🔴 CLOSED ISSUE")
+            {
+              echo "full_message<<EOF"
+              echo "<b>$STATUS: $REPO</b>"
+              echo "<a href='$ISSUE_URL'>Issue: $ISSUE_TITLE</a> by @$EVENT_SENDER"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+
+          elif [[ "$EVENT" == "pull_request" || "$EVENT" == "pull_request_target" ]]; then
+            ACTION="$EVENT_ACTION"
+            [[ "$ACTION" == "closed" && "$PR_MERGED" == "true" ]] && STATUS="💜 MERGED PR" || STATUS="🔵 PR $ACTION"
+            
+            ADDITIONS=$(printf "%'d" "${PR_ADDITIONS:-0}" 2>/dev/null || echo "${PR_ADDITIONS:-0}")
+            DELETIONS=$(printf "%'d" "${PR_DELETIONS:-0}" 2>/dev/null || echo "${PR_DELETIONS:-0}")
+
+            {
+              echo "full_message<<EOF"
+              echo "<b>$STATUS: $REPO</b>"
+              echo "<a href='$PR_URL'>PR: $PR_TITLE</a> by @$EVENT_SENDER"
+              echo "<code>(+$ADDITIONS -$DELETIONS)</code>"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Send to Telegram
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ steps.info.outputs.final_chat_id }}
+          TOPIC_ID: ${{ steps.info.outputs.final_topic_id }}
+          TEXT: ${{ steps.info.outputs.full_message }}
+        run: |
+          jq -n \
+            --arg chat_id "$CHAT_ID" \
+            --arg thread_id "$TOPIC_ID" \
+            --arg text "$TEXT" \
+            '{
+              chat_id: $chat_id, 
+              message_thread_id: $thread_id, 
+              text: $text, 
+              parse_mode: "HTML",
+              disable_web_page_preview: false
+            }' > payload.json
+
+          curl -X POST -H "Content-Type: application/json" -d @payload.json https://api.telegram.org/bot$BOT_TOKEN/sendMessage
