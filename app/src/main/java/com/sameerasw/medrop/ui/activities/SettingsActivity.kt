@@ -55,6 +55,7 @@ import com.sameerasw.medrop.ui.components.dialogs.AboutSection
 import com.sameerasw.medrop.ui.core.cards.FeatureCard
 import com.sameerasw.medrop.ui.core.cards.IconToggleItem
 import com.sameerasw.medrop.ui.core.containers.RoundedCardContainer
+import com.sameerasw.medrop.ui.core.sheets.MeDropHelpBottomSheet
 import com.sameerasw.medrop.ui.core.sheets.PermissionItem
 import com.sameerasw.medrop.ui.core.sheets.PermissionsBottomSheet
 import com.sameerasw.medrop.ui.modifiers.BlurDirection
@@ -327,14 +328,23 @@ class SettingsActivity : ComponentActivity() {
                             )
                         }
 
+                        var showHelpSheet by remember { mutableStateOf(false) }
+
                         MeDropFloatingToolbar(
                             title = stringResource(R.string.settings_title),
                             onBackClick = { finish() },
+                            onHelpClick = { showHelpSheet = true },
                             modifier =
                                 Modifier
                                     .align(androidx.compose.ui.Alignment.BottomCenter)
                                     .zIndex(1f),
                         )
+
+                        if (showHelpSheet) {
+                            MeDropHelpBottomSheet(
+                                onDismissRequest = { showHelpSheet = false }
+                            )
+                        }
                     }
 
                     if (showPermissionsSheet) {

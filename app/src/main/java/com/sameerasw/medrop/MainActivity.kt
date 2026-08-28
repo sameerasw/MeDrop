@@ -77,7 +77,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(
             statusBarStyle =
@@ -93,6 +93,51 @@ class MainActivity : AppCompatActivity() {
         )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = false
+        }
+
+        splashScreen.setOnExitAnimationListener { splashScreenViewProvider ->
+            try {
+                val splashScreenView = splashScreenViewProvider.view
+                val splashIcon =
+                    try {
+                        splashScreenViewProvider.iconView
+                    } catch (e: Exception) {
+                        null
+                    }
+
+                val fadeOut =
+                    android.animation.ObjectAnimator.ofFloat(splashScreenView, "alpha", 1f, 0f).apply {
+                        interpolator = android.view.animation.AnticipateInterpolator()
+                        duration = 750
+                    }
+                fadeOut.addListener(object : android.animation.AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: android.animation.Animator) {
+                        splashScreenViewProvider.remove()
+                    }
+                })
+
+                if (splashIcon != null) {
+                    val scaleX = android.animation.ObjectAnimator.ofFloat(splashIcon, "scaleX", 1f, 0.5f).apply {
+                        interpolator = android.view.animation.AnticipateInterpolator()
+                        duration = 750
+                    }
+                    val scaleY = android.animation.ObjectAnimator.ofFloat(splashIcon, "scaleY", 1f, 0.5f).apply {
+                        interpolator = android.view.animation.AnticipateInterpolator()
+                        duration = 750
+                    }
+                    val rotate = android.animation.ObjectAnimator.ofFloat(splashIcon, "rotation", 0f, -90f).apply {
+                        interpolator = android.view.animation.AnticipateInterpolator()
+                        duration = 750
+                    }
+                    scaleX.start()
+                    scaleY.start()
+                    rotate.start()
+                }
+
+                fadeOut.start()
+            } catch (e: Exception) {
+                splashScreenViewProvider.remove()
+            }
         }
 
         val isDarkMode =
