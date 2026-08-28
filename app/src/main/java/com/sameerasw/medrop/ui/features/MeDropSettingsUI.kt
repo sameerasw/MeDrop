@@ -644,7 +644,20 @@ fun MeDropProfileFieldsUI(
             }
         }
 
-        // Hidden Fields Section (in Edit mode)
+        // List Expand Toggle Button for Edit/Save Visibility (stays in place right below visible fields)
+        ListExpandToggleButton(
+            isExpanded = isEditVisibilityMode,
+            onToggle = {
+                HapticUtil.performVirtualKeyHaptic(view)
+                isEditVisibilityMode = !isEditVisibilityMode
+            },
+            expandedText = stringResource(R.string.feat_medrop_save_visibility),
+            collapsedText = stringResource(R.string.feat_medrop_edit_visibility),
+            collapsedIconRes = R.drawable.rounded_edit_24,
+            expandedIconRes = R.drawable.rounded_check_24,
+        )
+
+        // Hidden Fields Section (expands below the toggle button in Edit mode)
         AnimatedVisibility(
             visible = isEditVisibilityMode,
             enter = fadeIn(animationSpec = tween(300)) + expandVertically(animationSpec = spring(stiffness = 500f)),
@@ -700,19 +713,6 @@ fun MeDropProfileFieldsUI(
                 }
             }
         }
-
-        // List Expand Toggle Button for Edit/Save Visibility
-        ListExpandToggleButton(
-            isExpanded = isEditVisibilityMode,
-            onToggle = {
-                HapticUtil.performVirtualKeyHaptic(view)
-                isEditVisibilityMode = !isEditVisibilityMode
-            },
-            expandedText = stringResource(R.string.feat_medrop_save_visibility),
-            collapsedText = stringResource(R.string.feat_medrop_edit_visibility),
-            collapsedIconRes = R.drawable.rounded_edit_24,
-            expandedIconRes = R.drawable.rounded_check_24,
-        )
 
         // Empty area inside the page item to ensure full-width swipe surface down below
         Box(
