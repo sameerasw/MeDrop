@@ -49,7 +49,9 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sameerasw.medrop.R
 import com.sameerasw.medrop.domain.model.MeDropProfileType
+import com.sameerasw.medrop.ui.components.MadebySameeraswCard
 import com.sameerasw.medrop.ui.components.MeDropFloatingToolbar
+import com.sameerasw.medrop.ui.components.dialogs.AboutSection
 import com.sameerasw.medrop.ui.core.cards.FeatureCard
 import com.sameerasw.medrop.ui.core.cards.IconToggleItem
 import com.sameerasw.medrop.ui.core.containers.RoundedCardContainer
@@ -279,19 +281,39 @@ class SettingsActivity : ComponentActivity() {
                                 )
                             }
 
-                            Text(
-                                text = stringResource(R.string.about_title),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(start = 8.dp),
-                            )
+                            val isDeveloperModeEnabled by viewModel.isDeveloperModeEnabled
+
+                            if (isDeveloperModeEnabled) {
+                                Text(
+                                    text = stringResource(R.string.settings_section_developer_options),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(start = 8.dp),
+                                )
+
+                                RoundedCardContainer {
+                                    IconToggleItem(
+                                        iconRes = R.drawable.rounded_info_24,
+                                        title = stringResource(R.string.developer_options_empty_shrug),
+                                        showToggle = false,
+                                    )
+                                }
+                            }
+
+                            MadebySameeraswCard()
 
                             RoundedCardContainer {
-                                IconToggleItem(
-                                    iconRes = R.drawable.rounded_info_24,
-                                    title = stringResource(R.string.app_name),
-                                    description = stringResource(R.string.about_app_desc),
-                                    showToggle = false,
+                                AboutSection(
+                                    onAvatarLongClick = {
+                                        val newState = !isDeveloperModeEnabled
+                                        viewModel.setDeveloperModeEnabled(context, newState)
+                                        android.widget.Toast.makeText(
+                                            context,
+                                            if (newState) context.getString(R.string.developer_options_enabled_toast)
+                                            else context.getString(R.string.developer_options_disabled_toast),
+                                            android.widget.Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
                                 )
                             }
 

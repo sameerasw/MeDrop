@@ -16,12 +16,14 @@ class MeDropViewModel : ViewModel() {
     val isMeDropAllowWhenLocked = mutableStateOf(true)
     val isPitchBlackThemeEnabled = mutableStateOf(false)
     val isBlurEnabled = mutableStateOf(true)
+    val isDeveloperModeEnabled = mutableStateOf(false)
     val hasContactsPermission = mutableStateOf(false)
 
     fun check(context: Context) {
         val repo = MeDropRepository(context)
         isPitchBlackThemeEnabled.value = repo.isPitchBlackThemeEnabled()
         isBlurEnabled.value = repo.isBlurEnabled()
+        isDeveloperModeEnabled.value = repo.isDeveloperModeEnabled()
         hasContactsPermission.value = PermissionUtils.hasContactsPermission(context)
         loadMeDropSettings(context)
     }
@@ -34,6 +36,11 @@ class MeDropViewModel : ViewModel() {
     fun setBlurEnabled(context: Context, enabled: Boolean) {
         MeDropRepository(context).setBlurEnabled(enabled)
         isBlurEnabled.value = enabled
+    }
+
+    fun setDeveloperModeEnabled(context: Context, enabled: Boolean) {
+        MeDropRepository(context).setDeveloperModeEnabled(enabled)
+        isDeveloperModeEnabled.value = enabled
     }
 
     fun loadMeDropSettings(context: Context) {
