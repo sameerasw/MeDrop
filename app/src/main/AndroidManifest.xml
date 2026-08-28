@@ -47,6 +47,12 @@
             android:theme="@style/Theme.MeDrop.Translucent"
             android:turnScreenOn="true" />
 
+        <activity
+            android:name=".ui.activities.SettingsActivity"
+            android:exported="false"
+            android:label="@string/settings_title"
+            android:theme="@style/Theme.MeDrop" />
+
         <service
             android:name=".services.MeDropHceService"
             android:exported="true"

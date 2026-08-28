@@ -1,82 +1,69 @@
-package com.sameerasw.medrop
+package com.sameerasw.medrop.ui.activities
 
 import android.Manifest
 import android.app.Activity
-import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
+import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.sameerasw.medrop.domain.model.MeDropProfileType
-import com.sameerasw.medrop.ui.activities.SettingsActivity
+import com.sameerasw.medrop.R
 import com.sameerasw.medrop.ui.components.MeDropFloatingToolbar
-import com.sameerasw.medrop.ui.components.ToolbarItem
+import com.sameerasw.medrop.ui.core.cards.FeatureCard
+import com.sameerasw.medrop.ui.core.cards.IconToggleItem
+import com.sameerasw.medrop.ui.core.containers.RoundedCardContainer
 import com.sameerasw.medrop.ui.core.sheets.PermissionItem
 import com.sameerasw.medrop.ui.core.sheets.PermissionsBottomSheet
-import com.sameerasw.medrop.ui.features.MeDropSettingsUI
 import com.sameerasw.medrop.ui.modifiers.BlurDirection
 import com.sameerasw.medrop.ui.modifiers.progressiveBlur
 import com.sameerasw.medrop.ui.theme.MeDropTheme
-import com.sameerasw.medrop.utils.HapticUtil
 import com.sameerasw.medrop.utils.MeDropContactPickerHelper
 import com.sameerasw.medrop.utils.PermissionUtils
 import com.sameerasw.medrop.viewmodels.MeDropViewModel
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 
-@OptIn(ExperimentalMaterial3Api::class)
-class MainActivity : AppCompatActivity() {
+class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(
             statusBarStyle =
@@ -102,6 +89,7 @@ class MainActivity : AppCompatActivity() {
         setContent {
             val context = LocalContext.current
             val viewModel: MeDropViewModel = viewModel()
+            val scope = rememberCoroutineScope()
 
             val lifecycleOwner = LocalLifecycleOwner.current
             DisposableEffect(lifecycleOwner) {
@@ -117,44 +105,17 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            remember(context) { viewModel.check(context) }
+            LaunchedEffect(Unit) {
+                viewModel.check(context)
+            }
 
             val isPitchBlackThemeEnabled by viewModel.isPitchBlackThemeEnabled
             val isBlurEnabled by viewModel.isBlurEnabled
+            val isAllowWhenLocked by viewModel.isMeDropAllowWhenLocked
             val hasContactsPerm by viewModel.hasContactsPermission
-
+            val settings by viewModel.meDropSettings
+            val currentContact = settings?.contact
             val density = LocalDensity.current
-            val minHeaderHeight = 200.dp
-            val maxHeaderHeight = 400.dp
-            var headerHeight by remember { mutableStateOf(minHeaderHeight) }
-
-            val view = LocalView.current
-            val scope = rememberCoroutineScope()
-
-            val tabs = remember {
-                listOf(
-                    MeDropProfileType.CONTACT,
-                    MeDropProfileType.PROFESSIONAL,
-                    MeDropProfileType.CUSTOM
-                )
-            }
-
-            val pagerState = rememberPagerState(
-                initialPage = 0,
-                pageCount = { tabs.size }
-            )
-
-            // Haptics on tab switch
-            LaunchedEffect(pagerState) {
-                var isFirst = true
-                snapshotFlow { pagerState.currentPage }.collect {
-                    if (isFirst) {
-                        isFirst = false
-                    } else {
-                        HapticUtil.performHeavyHaptic(view)
-                    }
-                }
-            }
 
             var showPermissionsSheet by remember { mutableStateOf(false) }
 
@@ -189,81 +150,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            val nestedScrollConnection =
-                remember {
-                    object : NestedScrollConnection {
-                        override fun onPreScroll(
-                            available: Offset,
-                            source: NestedScrollSource,
-                        ): Offset {
-                            val delta = available.y
-                            if (delta < 0 && headerHeight > minHeaderHeight) {
-                                val oldHeight = headerHeight
-                                headerHeight =
-                                    with(density) {
-                                        (oldHeight.toPx() + delta).toDp()
-                                    }.coerceAtLeast(minHeaderHeight)
-                                val consumed = oldHeight - headerHeight
-                                return Offset(0f, with(density) { -consumed.toPx() })
-                            }
-                            return Offset.Zero
-                        }
-
-                        override fun onPostScroll(
-                            consumed: Offset,
-                            available: Offset,
-                            source: NestedScrollSource,
-                        ): Offset {
-                            val delta = available.y
-                            if (delta > 0) {
-                                val oldHeight = headerHeight
-                                headerHeight =
-                                    with(density) {
-                                        (oldHeight.toPx() + delta).toDp()
-                                    }.coerceAtMost(maxHeaderHeight)
-
-                                if (headerHeight == maxHeaderHeight && oldHeight < maxHeaderHeight) {
-                                    HapticUtil.performLightHaptic(view)
-                                }
-
-                                val produced = headerHeight - oldHeight
-                                return Offset(0f, with(density) { produced.toPx() })
-                            }
-                            return Offset.Zero
-                        }
-                    }
-                }
-
-            val toolbarItems = listOf(
-                ToolbarItem(
-                    iconRes = R.drawable.rounded_contacts_product_24,
-                    labelRes = R.string.feat_medrop_profile_contact,
-                    onClick = {
-                        scope.launch {
-                            pagerState.animateScrollToPage(0, animationSpec = tween(300))
-                        }
-                    }
-                ),
-                ToolbarItem(
-                    iconRes = R.drawable.rounded_work_24,
-                    labelRes = R.string.feat_medrop_profile_professional,
-                    onClick = {
-                        scope.launch {
-                            pagerState.animateScrollToPage(1, animationSpec = tween(300))
-                        }
-                    }
-                ),
-                ToolbarItem(
-                    iconRes = R.drawable.rounded_id_card_24,
-                    labelRes = R.string.feat_medrop_profile_custom,
-                    onClick = {
-                        scope.launch {
-                            pagerState.animateScrollToPage(2, animationSpec = tween(300))
-                        }
-                    }
-                )
-            )
-
             MeDropTheme(pitchBlackTheme = isPitchBlackThemeEnabled) {
                 Scaffold(
                     contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -287,62 +173,111 @@ class MainActivity : AppCompatActivity() {
                                     direction = BlurDirection.TOP,
                                 ),
                     ) {
-                        HorizontalPager(
-                            state = pagerState,
-                            modifier = Modifier.fillMaxSize(),
-                        ) { page ->
-                            val currentProfileType = tabs[page]
-                            Column(
+                        Column(
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .progressiveBlur(
+                                        blurRadius = if (isBlurEnabled) 40f else 0f,
+                                        height = with(density) { 150.dp.toPx() },
+                                        direction = BlurDirection.BOTTOM,
+                                    )
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            Spacer(
                                 modifier =
-                                    Modifier
-                                        .fillMaxSize()
-                                        .progressiveBlur(
-                                            blurRadius = if (isBlurEnabled) 40f else 0f,
-                                            height = with(density) { 150.dp.toPx() },
-                                            direction = BlurDirection.BOTTOM,
-                                        )
-                                        .nestedScroll(nestedScrollConnection)
-                                        .verticalScroll(rememberScrollState()),
-                            ) {
-                                Spacer(
-                                    modifier =
-                                        Modifier.height(
-                                            WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
-                                        ),
-                                )
+                                    Modifier.height(
+                                        WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 8.dp,
+                                    ),
+                            )
 
-                                MeDropSettingsUI(
-                                    viewModel = viewModel,
-                                    headerHeight = headerHeight,
-                                    selectedTab = currentProfileType,
-                                    onPickContactClick = onPickContactClick,
-                                    modifier = Modifier.padding(top = 4.dp),
-                                )
+                            // Contact Source Card
+                            FeatureCard(
+                                title = if (currentContact != null) {
+                                    stringResource(R.string.feat_medrop_change_contact)
+                                } else {
+                                    stringResource(R.string.feat_medrop_select_contact)
+                                },
+                                description = currentContact?.displayName ?: stringResource(R.string.feat_medrop_no_contact_desc),
+                                iconRes = R.drawable.rounded_contacts_product_24,
+                                onClick = onPickContactClick,
+                            )
 
-                                Spacer(
-                                    modifier =
-                                        Modifier.height(
-                                            WindowInsets.navigationBars
-                                                .asPaddingValues()
-                                                .calculateBottomPadding() + 150.dp,
-                                        ),
+                            Text(
+                                text = stringResource(R.string.settings_section_general),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(start = 8.dp),
+                            )
+
+                            RoundedCardContainer {
+                                IconToggleItem(
+                                    iconRes = R.drawable.rounded_lock_24,
+                                    title = stringResource(R.string.feat_medrop_allow_when_locked),
+                                    description = stringResource(R.string.feat_medrop_allow_when_locked_desc),
+                                    isChecked = isAllowWhenLocked,
+                                    onCheckedChange = { viewModel.setMeDropAllowWhenLocked(context, it) },
                                 )
                             }
+
+                            Text(
+                                text = stringResource(R.string.settings_section_appearance),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(start = 8.dp),
+                            )
+
+                            RoundedCardContainer {
+                                IconToggleItem(
+                                    iconRes = R.drawable.rounded_palette_24,
+                                    title = stringResource(R.string.setting_pitch_black_theme_title),
+                                    description = stringResource(R.string.setting_pitch_black_theme_desc),
+                                    isChecked = isPitchBlackThemeEnabled,
+                                    onCheckedChange = { viewModel.setPitchBlackTheme(context, it) },
+                                )
+                                IconToggleItem(
+                                    iconRes = R.drawable.rounded_blur_on_24,
+                                    title = stringResource(R.string.label_use_blur),
+                                    description = stringResource(R.string.desc_use_blur),
+                                    isChecked = isBlurEnabled,
+                                    onCheckedChange = { viewModel.setBlurEnabled(context, it) },
+                                )
+                            }
+
+                            Text(
+                                text = stringResource(R.string.about_title),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(start = 8.dp),
+                            )
+
+                            RoundedCardContainer {
+                                IconToggleItem(
+                                    iconRes = R.drawable.rounded_info_24,
+                                    title = stringResource(R.string.app_name),
+                                    description = stringResource(R.string.about_app_desc),
+                                    showToggle = false,
+                                )
+                            }
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(
+                                        WindowInsets.navigationBars
+                                            .asPaddingValues()
+                                            .calculateBottomPadding() + 150.dp,
+                                    ),
+                            )
                         }
 
                         MeDropFloatingToolbar(
-                            items = toolbarItems,
-                            selectedIndex = pagerState.currentPage,
-                            fabIconRes = R.drawable.rounded_settings_24,
-                            fabAction = {
-                                HapticUtil.performVirtualKeyHaptic(view)
-                                val intent = Intent(context, SettingsActivity::class.java)
-                                context.startActivity(intent)
-                            },
-                            fabContentDescription = stringResource(R.string.action_settings),
+                            title = stringResource(R.string.settings_title),
+                            onBackClick = { finish() },
                             modifier =
                                 Modifier
-                                    .align(Alignment.BottomCenter)
+                                    .align(androidx.compose.ui.Alignment.BottomCenter)
                                     .zIndex(1f),
                         )
                     }

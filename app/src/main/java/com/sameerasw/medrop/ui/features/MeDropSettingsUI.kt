@@ -4,10 +4,13 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -29,6 +32,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -38,9 +44,9 @@ import com.sameerasw.medrop.R
 import com.sameerasw.medrop.domain.model.MeDropContact
 import com.sameerasw.medrop.domain.model.MeDropProfileType
 import com.sameerasw.medrop.domain.model.MeDropSettings
+import com.sameerasw.medrop.ui.core.cards.FeatureCard
 import com.sameerasw.medrop.ui.core.cards.IconToggleItem
 import com.sameerasw.medrop.ui.core.containers.RoundedCardContainer
-import com.sameerasw.medrop.ui.core.pickers.SegmentedPicker
 import com.sameerasw.medrop.utils.HapticUtil
 import com.sameerasw.medrop.utils.MeDropContactPickerHelper
 import com.sameerasw.medrop.viewmodels.MeDropViewModel
@@ -52,7 +58,7 @@ fun MeDropSettingsUI(
     viewModel: MeDropViewModel,
     headerHeight: Dp = 200.dp,
     selectedTab: MeDropProfileType = MeDropProfileType.CONTACT,
-    onTabSelected: (MeDropProfileType) -> Unit = {},
+    onPickContactClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -140,63 +146,54 @@ fun MeDropSettingsUI(
             }
         }
 
-        val profileTabs = listOf(MeDropProfileType.CONTACT, MeDropProfileType.PROFESSIONAL, MeDropProfileType.CUSTOM)
-        RoundedCardContainer {
-            SegmentedPicker(
-                items = profileTabs,
-                selectedItem = selectedTab,
-                onItemSelected = onTabSelected,
-                labelProvider = { type ->
-                    when (type) {
-                        MeDropProfileType.CONTACT -> context.getString(R.string.feat_medrop_profile_contact)
-                        MeDropProfileType.PROFESSIONAL -> context.getString(R.string.feat_medrop_profile_professional)
-                        MeDropProfileType.CUSTOM -> context.getString(R.string.feat_medrop_profile_custom)
-                    }
-                },
-                iconProvider = { type ->
-                    val iconRes = when (type) {
-                        MeDropProfileType.CONTACT -> R.drawable.rounded_contacts_product_24
-                        MeDropProfileType.PROFESSIONAL -> R.drawable.rounded_work_24
-                        MeDropProfileType.CUSTOM -> R.drawable.rounded_id_card_24
-                    }
-                    Icon(
-                        painter = painterResource(iconRes),
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
+        // Contact Header
+        if (contact != null) {
+            Text(
+                text = contact.displayName,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp)
+                    .basicMarquee(),
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontFamily = FontFamily(
+                        Font(
+                            R.font.google_sans_flex,
+                            variationSettings = FontVariation.Settings(
+                                FontVariation.width(150f),
+                                FontVariation.weight(FontWeight.Normal.weight),
+                                FontVariation.Setting("ROND", 100f),
+                            ),
+                        ),
+                    ),
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                textAlign = TextAlign.Center,
             )
+
+            val showNickname = safeSettings.isEntrySelected(selectedTab, "nickname") && !contact.nickname.isNullOrBlank()
+            val showPronouns = safeSettings.isEntrySelected(selectedTab, "pronouns") && !contact.pronouns.isNullOrBlank()
+            if (showNickname || showPronouns) {
+                val nickPart = if (showNickname) "\"${contact.nickname}\"" else null
+                val pronounPart = if (showPronouns) "(${contact.pronouns})" else null
+                val subName = listOfNotNull(nickPart, pronounPart).joinToString(" ")
+                Text(
+                    text = subName,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.basicMarquee(),
+                )
+            }
         }
 
         if (contact == null) {
-            RoundedCardContainer {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.rounded_contacts_product_24),
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
-                        text = stringResource(R.string.feat_medrop_no_contact),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        text = stringResource(R.string.feat_medrop_no_contact_desc),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
+            FeatureCard(
+                title = stringResource(R.string.feat_medrop_select_contact),
+                description = stringResource(R.string.feat_medrop_no_contact_desc),
+                iconRes = R.drawable.rounded_contacts_product_24,
+                onClick = onPickContactClick,
+            )
         } else {
             when (selectedTab) {
                 MeDropProfileType.CONTACT -> {
@@ -232,16 +229,6 @@ fun MeDropSettingsUI(
                     )
                 }
             }
-        }
-
-        RoundedCardContainer {
-            IconToggleItem(
-                iconRes = R.drawable.rounded_lock_24,
-                title = stringResource(R.string.feat_medrop_allow_when_locked),
-                description = stringResource(R.string.feat_medrop_allow_when_locked_desc),
-                isChecked = safeSettings.allowWhenLocked,
-                onCheckedChange = { viewModel.setMeDropAllowWhenLocked(context, it) },
-            )
         }
     }
 }
@@ -463,7 +450,7 @@ private fun ProfileFieldsList(
                 title = email,
                 isChecked = settings.isEntrySelected(type, id),
                 onCheckedChange = {
-                    viewModel.toggleMeDropProfileEntry(context, type, id, it)
+                    viewModel.toggleMeDropProfileEntry(context, type, id, id == "email_0")
                 },
             )
         }

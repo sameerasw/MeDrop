@@ -3,6 +3,7 @@
     <string name="feat_medrop_title">MeDrop</string>
     <string name="feat_medrop_set_up">Set Up</string>
     <string name="feat_medrop_select_contact">Select Contact</string>
+    <string name="feat_medrop_pick_contact">Pick a contact</string>
     <string name="feat_medrop_change_contact">Change Contact</string>
     <string name="feat_medrop_allow_when_locked">Allow when Locked</string>
     <string name="feat_medrop_allow_when_locked_desc">Open MeDrop from the quick tile even when the screen is locked</string>
@@ -44,4 +45,21 @@
     <string name="action_help_guide">Help Guide</string>
     <string name="label_beta">BETA</string>
     <string name="action_settings">Settings</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_general">General</string>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="setting_pitch_black_theme_title">Pitch black theme</string>
+    <string name="setting_pitch_black_theme_desc">Use pure black background in dark mode</string>
+    <string name="label_use_blur">Use blur</string>
+    <string name="desc_use_blur">Enable progressive blur elements across the UI</string>
+    <string name="about_title">About</string>
+    <string name="about_app_desc">MeDrop allows seamless sharing of your contact card and profiles using NFC Host Card Emulation.</string>
+
+    <string name="requires_following_permissions">%1$s requires following permissions</string>
+    <string name="perm_contacts_title">Contacts Access</string>
+    <string name="perm_contacts_desc">Required to read and extract contact details to generate your digital business card and NFC vCard.</string>
+    <string name="perm_action_grant">Grant Permission</string>
+    <string name="perm_action_granted">Granted</string>
+    <string name="perm_required_for">Required for:</string>
 </resources>

@@ -9,18 +9,31 @@ import com.sameerasw.medrop.domain.model.MeDropContact
 import com.sameerasw.medrop.domain.model.MeDropProfile
 import com.sameerasw.medrop.domain.model.MeDropProfileType
 import com.sameerasw.medrop.domain.model.MeDropSettings
+import com.sameerasw.medrop.utils.PermissionUtils
 
 class MeDropViewModel : ViewModel() {
     val meDropSettings = mutableStateOf<MeDropSettings?>(null)
     val isMeDropAllowWhenLocked = mutableStateOf(false)
     val isPitchBlackThemeEnabled = mutableStateOf(false)
     val isBlurEnabled = mutableStateOf(true)
+    val hasContactsPermission = mutableStateOf(false)
 
     fun check(context: Context) {
         val repo = MeDropRepository(context)
         isPitchBlackThemeEnabled.value = repo.isPitchBlackThemeEnabled()
         isBlurEnabled.value = repo.isBlurEnabled()
+        hasContactsPermission.value = PermissionUtils.hasContactsPermission(context)
         loadMeDropSettings(context)
+    }
+
+    fun setPitchBlackTheme(context: Context, enabled: Boolean) {
+        MeDropRepository(context).setPitchBlackThemeEnabled(enabled)
+        isPitchBlackThemeEnabled.value = enabled
+    }
+
+    fun setBlurEnabled(context: Context, enabled: Boolean) {
+        MeDropRepository(context).setBlurEnabled(enabled)
+        isBlurEnabled.value = enabled
     }
 
     fun loadMeDropSettings(context: Context) {
