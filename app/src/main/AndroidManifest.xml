@@ -38,20 +38,30 @@
         <activity
             android:name=".ui.activities.MeDropActivity"
             android:excludeFromRecents="true"
-            android:exported="false"
+            android:exported="true"
             android:label="@string/feat_medrop_title"
             android:noHistory="true"
             android:showOnLockScreen="true"
             android:showWhenLocked="true"
             android:taskAffinity=""
             android:theme="@style/Theme.MeDrop.Translucent"
-            android:turnScreenOn="true" />
+            android:turnScreenOn="true">
+            <intent-filter>
+                <action android:name="com.sameerasw.medrop.action.SHARE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
 
         <activity
             android:name=".ui.activities.SettingsActivity"
-            android:exported="false"
+            android:exported="true"
             android:label="@string/settings_title"
-            android:theme="@style/Theme.MeDrop" />
+            android:theme="@style/Theme.MeDrop">
+            <intent-filter>
+                <action android:name="com.sameerasw.medrop.action.SETTINGS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
 
         <service
             android:name=".services.MeDropHceService"
