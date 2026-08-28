@@ -20,12 +20,12 @@ kotlin {
 
 android {
     namespace = "com.sameerasw.medrop"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.sameerasw.medrop"
         minSdk = 26
-        targetSdk = 37
+        targetSdk = 36
         versionCode = 2
         versionName = "1.0"
 
