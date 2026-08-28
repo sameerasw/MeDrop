@@ -12,6 +12,7 @@
     <string name="feat_medrop_no_contact_desc">Tap below to choose a contact to share via NFC</string>
     <string name="feat_medrop_include_photo">Include profile photo</string>
     <string name="feat_medrop_share_fields_title">What to share</string>
+    <string name="feat_medrop_field_name">Display Name</string>
     <string name="feat_medrop_field_nickname">Nickname</string>
     <string name="feat_medrop_field_pronouns">Pronouns</string>
     <string name="feat_medrop_field_birthday">Birthday</string>
@@ -19,6 +20,11 @@
     <string name="feat_medrop_field_department">Department</string>
     <string name="feat_medrop_field_job_title">Job title</string>
     <string name="feat_medrop_field_role">Role</string>
+    <string name="feat_medrop_field_phone">Phone</string>
+    <string name="feat_medrop_field_email">Email</string>
+    <string name="feat_medrop_field_address">Address</string>
+    <string name="feat_medrop_field_url">Website / URL</string>
+    <string name="feat_medrop_field_note">Note</string>
     <string name="feat_medrop_choose_custom_photo">Choose custom photo</string>
     <string name="feat_medrop_remove_custom_photo">Remove photo</string>
     <string name="feat_medrop_hold_near">Hold near another device</string>
@@ -44,6 +50,11 @@
     <string name="feat_medrop_edit_visibility">Edit visibility</string>
     <string name="feat_medrop_save_visibility">Save visibility</string>
     <string name="feat_medrop_no_visible_fields">No fields visible for this profile</string>
+    <string name="feat_medrop_edit_field_title">Edit %1$s</string>
+    <string name="feat_medrop_edit_name_title">Edit Profile Name</string>
+    <string name="feat_medrop_action_save">Save</string>
+    <string name="feat_medrop_action_cancel">Cancel</string>
+    <string name="feat_medrop_action_reset_default">Reset to default</string>
     <string name="about_desc_medrop">Share your contact card with another device using NFC — similar to Apple\'s NameDrop. Your phone acts as a virtual NFC card that any NFC-enabled device can read.</string>
 
     <string name="content_desc_back">Back</string>

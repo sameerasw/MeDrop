@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
@@ -40,7 +41,9 @@ fun MeDropBottomSheetContainer(
         dragHandle = dragHandle,
         contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
         properties = properties,
-        modifier = modifier.statusBarsPadding(),
+        modifier = modifier
+            .statusBarsPadding()
+            .imePadding(),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),

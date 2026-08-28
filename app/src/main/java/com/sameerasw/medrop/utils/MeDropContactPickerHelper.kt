@@ -1,5 +1,6 @@
 package com.sameerasw.medrop.utils
 
+import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -19,7 +20,7 @@ object MeDropContactPickerHelper {
             try {
                 context.contentResolver.openInputStream(uri)?.use { stream ->
                     val originalBitmap = android.graphics.BitmapFactory.decodeStream(stream) ?: return@withContext null
-                    val maxDim = 240
+                    val maxDim = 1024
                     val width = originalBitmap.width
                     val height = originalBitmap.height
                     val ratio = if (width > height) {
@@ -43,7 +44,7 @@ object MeDropContactPickerHelper {
                     val fileName = "custom_photo_${profileType.name.lowercase()}.jpg"
                     val photoFile = java.io.File(photosDir, fileName)
                     java.io.FileOutputStream(photoFile).use { out ->
-                        scaledBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, out)
+                        scaledBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
                     }
                     Uri.fromFile(photoFile).toString()
                 }
@@ -57,17 +58,23 @@ object MeDropContactPickerHelper {
             val projection = arrayOf(
                 ContactsContract.Contacts._ID,
                 ContactsContract.Contacts.LOOKUP_KEY,
-                ContactsContract.Contacts.DISPLAY_NAME_PRIMARY
+                ContactsContract.Contacts.DISPLAY_NAME_PRIMARY,
+                ContactsContract.Contacts.PHOTO_URI
             )
             val contactId: Long
             val lookupKey: String
             val displayName: String
+            var contactPhotoUri: String? = null
 
             context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
                 if (!cursor.moveToFirst()) return@withContext null
                 contactId = cursor.getLong(cursor.getColumnIndexOrThrow(ContactsContract.Contacts._ID))
                 lookupKey = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Contacts.LOOKUP_KEY)) ?: ""
                 displayName = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY)) ?: ""
+                val photoCol = cursor.getColumnIndex(ContactsContract.Contacts.PHOTO_URI)
+                if (photoCol != -1) {
+                    contactPhotoUri = cursor.getString(photoCol)
+                }
             } ?: return@withContext null
 
             val details = try {
@@ -78,10 +85,38 @@ object MeDropContactPickerHelper {
                 ExtractedDetails()
             }
 
+            val savedContactPhoto = if (contactPhotoUri != null) {
+                try {
+                    val pUri = Uri.parse(contactPhotoUri)
+                    saveCompressedCustomPhoto(pUri, context, MeDropProfileType.CONTACT)
+                } catch (_: Exception) {
+                    null
+                }
+            } else {
+                try {
+                    val contactUri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, contactId)
+                    val photoStream = ContactsContract.Contacts.openContactPhotoInputStream(context.contentResolver, contactUri, true)
+                    photoStream?.use { stream ->
+                        val originalBitmap = android.graphics.BitmapFactory.decodeStream(stream)
+                        if (originalBitmap != null) {
+                            val photosDir = java.io.File(context.filesDir, "medrop")
+                            if (!photosDir.exists()) photosDir.mkdirs()
+                            val photoFile = java.io.File(photosDir, "custom_photo_contact.jpg")
+                            java.io.FileOutputStream(photoFile).use { out ->
+                                originalBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
+                            }
+                            Uri.fromFile(photoFile).toString()
+                        } else null
+                    }
+                } catch (_: Exception) {
+                    null
+                }
+            }
+
             MeDropContact(
                 lookupKey = lookupKey,
                 displayName = displayName,
-                photoUri = null,
+                photoUri = savedContactPhoto,
                 nickname = details.nickname,
                 birthday = details.birthday,
                 pronouns = details.pronouns,

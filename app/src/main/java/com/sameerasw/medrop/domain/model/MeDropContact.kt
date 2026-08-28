@@ -68,17 +68,21 @@ data class MeDropContact(
     fun toVCard(
         context: android.content.Context? = null,
         activeEntryIds: Set<String>,
-        customPhotoUri: String? = null
+        customPhotoUri: String? = null,
+        customDisplayName: String? = null,
+        fieldOverrides: Map<String, String> = emptyMap()
     ): String {
+        val effectiveDisplayName = customDisplayName?.takeIf { it.isNotBlank() } ?: displayName
         val effectivePhotoUri = customPhotoUri ?: photoUri
         val sb = StringBuilder()
         sb.appendLine("BEGIN:VCARD")
         sb.appendLine("VERSION:3.0")
-        sb.appendLine("FN:$displayName")
-        sb.appendLine("N:${buildNField(displayName)}")
+        sb.appendLine("FN:$effectiveDisplayName")
+        sb.appendLine("N:${buildNField(effectiveDisplayName)}")
 
-        if (activeEntryIds.contains("nickname") && !nickname.isNullOrBlank()) {
-            sb.appendLine("NICKNAME:$nickname")
+        val effNickname = fieldOverrides["nickname"] ?: nickname
+        if (activeEntryIds.contains("nickname") && !effNickname.isNullOrBlank()) {
+            sb.appendLine("NICKNAME:$effNickname")
         }
 
         if (activeEntryIds.contains("photo") && !effectivePhotoUri.isNullOrBlank() && context != null) {
@@ -123,53 +127,66 @@ data class MeDropContact(
             }
         }
 
-        if (activeEntryIds.contains("birthday") && !birthday.isNullOrBlank()) {
-            sb.appendLine("BDAY:$birthday")
+        val effBirthday = fieldOverrides["birthday"] ?: birthday
+        if (activeEntryIds.contains("birthday") && !effBirthday.isNullOrBlank()) {
+            sb.appendLine("BDAY:$effBirthday")
         }
 
-        if (activeEntryIds.contains("pronouns") && !pronouns.isNullOrBlank()) {
-            sb.appendLine("PRONOUNS:$pronouns")
-            sb.appendLine("X-PRONOUNS:$pronouns")
+        val effPronouns = fieldOverrides["pronouns"] ?: pronouns
+        if (activeEntryIds.contains("pronouns") && !effPronouns.isNullOrBlank()) {
+            sb.appendLine("PRONOUNS:$effPronouns")
+            sb.appendLine("X-PRONOUNS:$effPronouns")
         }
 
-        val hasOrg = activeEntryIds.contains("organization") && !organization.isNullOrBlank()
-        val hasDept = activeEntryIds.contains("department") && !department.isNullOrBlank()
+        val effOrg = fieldOverrides["organization"] ?: organization
+        val effDept = fieldOverrides["department"] ?: department
+        val hasOrg = activeEntryIds.contains("organization") && !effOrg.isNullOrBlank()
+        val hasDept = activeEntryIds.contains("department") && !effDept.isNullOrBlank()
         if (hasOrg || hasDept) {
-            val orgPart = if (hasOrg) organization else ""
-            val deptPart = if (hasDept) ";$department" else ""
+            val orgPart = if (hasOrg) effOrg else ""
+            val deptPart = if (hasDept) ";$effDept" else ""
             sb.appendLine("ORG:$orgPart$deptPart")
         }
-        if (activeEntryIds.contains("jobTitle") && !jobTitle.isNullOrBlank()) {
-            sb.appendLine("TITLE:$jobTitle")
+
+        val effJobTitle = fieldOverrides["jobTitle"] ?: jobTitle
+        if (activeEntryIds.contains("jobTitle") && !effJobTitle.isNullOrBlank()) {
+            sb.appendLine("TITLE:$effJobTitle")
         }
-        if (activeEntryIds.contains("role") && !role.isNullOrBlank()) {
-            sb.appendLine("ROLE:$role")
+
+        val effRole = fieldOverrides["role"] ?: role
+        if (activeEntryIds.contains("role") && !effRole.isNullOrBlank()) {
+            sb.appendLine("ROLE:$effRole")
         }
 
         getSafePhones().forEachIndexed { i, phone ->
-            if (activeEntryIds.contains("phone_$i")) {
-                sb.appendLine("TEL;TYPE=CELL:$phone")
+            val effPhone = fieldOverrides["phone_$i"] ?: phone
+            if (activeEntryIds.contains("phone_$i") && effPhone.isNotBlank()) {
+                sb.appendLine("TEL;TYPE=CELL:$effPhone")
             }
         }
         getSafeEmails().forEachIndexed { i, email ->
-            if (activeEntryIds.contains("email_$i")) {
-                sb.appendLine("EMAIL;TYPE=INTERNET:$email")
+            val effEmail = fieldOverrides["email_$i"] ?: email
+            if (activeEntryIds.contains("email_$i") && effEmail.isNotBlank()) {
+                sb.appendLine("EMAIL;TYPE=INTERNET:$effEmail")
             }
         }
         getSafeAddresses().forEachIndexed { i, addr ->
-            if (activeEntryIds.contains("address_$i")) {
+            val effAddr = fieldOverrides["address_$i"] ?: addr
+            if (activeEntryIds.contains("address_$i") && effAddr.isNotBlank()) {
                 val addrType = getSafeAddressTypes().getOrNull(i)
                 val typeTag = if (addrType == 2) "WORK" else "HOME"
-                sb.appendLine("ADR;TYPE=$typeTag:;;${addr.replace("\n", ";")};;;")
+                sb.appendLine("ADR;TYPE=$typeTag:;;${effAddr.replace("\n", ";")};;;")
             }
         }
         getSafeUrls().forEachIndexed { i, url ->
-            if (activeEntryIds.contains("url_$i")) {
-                sb.appendLine("URL:$url")
+            val effUrl = fieldOverrides["url_$i"] ?: url
+            if (activeEntryIds.contains("url_$i") && effUrl.isNotBlank()) {
+                sb.appendLine("URL:$effUrl")
             }
         }
-        if (activeEntryIds.contains("note") && !note.isNullOrBlank()) {
-            sb.appendLine("NOTE:${note.replace("\n", " ")}")
+        val effNote = fieldOverrides["note"] ?: note
+        if (activeEntryIds.contains("note") && !effNote.isNullOrBlank()) {
+            sb.appendLine("NOTE:${effNote.replace("\n", " ")}")
         }
 
         val rev = SimpleDateFormat("yyyyMMdd'T'HHmmss'Z'", Locale.US).format(Date())

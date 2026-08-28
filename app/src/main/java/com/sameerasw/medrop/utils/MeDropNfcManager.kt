@@ -25,11 +25,14 @@ object MeDropNfcManager {
         val photoUri = settings.getEffectivePhotoUri(activeType)
         val context = activity.applicationContext
 
+        val profile = settings.getProfile(activeType)
         val vCard = withContext(Dispatchers.IO) {
             contact.toVCard(
                 context = context,
                 activeEntryIds = activeEntries,
-                customPhotoUri = photoUri
+                customPhotoUri = photoUri,
+                customDisplayName = if (activeType != com.sameerasw.medrop.domain.model.MeDropProfileType.CONTACT) profile.customDisplayName else null,
+                fieldOverrides = profile.customFieldOverrides
             )
         }
 
@@ -76,11 +79,14 @@ object MeDropNfcManager {
             val activeEntries = settings.getEffectiveEntryIds(activeType)
             val photoUri = settings.getEffectivePhotoUri(activeType)
 
+            val profile = settings.getProfile(activeType)
             val vCard = withContext(Dispatchers.IO) {
                 contact.toVCard(
                     context = context,
                     activeEntryIds = activeEntries,
-                    customPhotoUri = photoUri
+                    customPhotoUri = photoUri,
+                    customDisplayName = if (activeType != com.sameerasw.medrop.domain.model.MeDropProfileType.CONTACT) profile.customDisplayName else null,
+                    fieldOverrides = profile.customFieldOverrides
                 )
             }
 

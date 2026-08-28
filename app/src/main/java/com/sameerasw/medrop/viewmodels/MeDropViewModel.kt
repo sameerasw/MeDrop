@@ -131,4 +131,34 @@ class MeDropViewModel : ViewModel() {
         val updated = current.updateProfile(profile)
         saveMeDropSettings(context, updated)
     }
+
+    fun updateMeDropProfileDisplayName(
+        context: Context,
+        type: MeDropProfileType,
+        customName: String?,
+    ) {
+        val current = meDropSettings.value ?: MeDropSettings()
+        val profile = current.getProfile(type).copy(customDisplayName = customName?.takeIf { it.isNotBlank() })
+        val updated = current.updateProfile(profile)
+        saveMeDropSettings(context, updated)
+    }
+
+    fun updateMeDropProfileFieldValue(
+        context: Context,
+        type: MeDropProfileType,
+        fieldId: String,
+        value: String?,
+    ) {
+        val current = meDropSettings.value ?: MeDropSettings()
+        val profile = current.getProfile(type)
+        val currentOverrides = profile.customFieldOverrides.toMutableMap()
+        if (value.isNullOrBlank()) {
+            currentOverrides.remove(fieldId)
+        } else {
+            currentOverrides[fieldId] = value
+        }
+        val updatedProfile = profile.copy(customFieldOverrides = currentOverrides)
+        val updated = current.updateProfile(updatedProfile)
+        saveMeDropSettings(context, updated)
+    }
 }

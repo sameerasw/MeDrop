@@ -25,6 +25,21 @@ data class MeDropSettings(
         }
     }
 
+    fun getEffectiveDisplayName(type: MeDropProfileType): String {
+        val safeContactName = contact?.displayName ?: ""
+        if (type == MeDropProfileType.CONTACT) return safeContactName
+        val profile = getProfile(type)
+        return profile.customDisplayName?.takeIf { it.isNotBlank() } ?: safeContactName
+    }
+
+    fun getEffectiveFieldValue(type: MeDropProfileType, fieldId: String, defaultValue: String?): String? {
+        val profile = getProfile(type)
+        if (profile.customFieldOverrides != null && profile.customFieldOverrides.containsKey(fieldId)) {
+            return profile.customFieldOverrides[fieldId]
+        }
+        return defaultValue
+    }
+
     fun getEffectivePhotoUri(type: MeDropProfileType): String? {
         return if (usePhotoForAll) {
             contactProfile.photoUri ?: contact?.photoUri

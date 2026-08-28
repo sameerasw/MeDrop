@@ -212,10 +212,13 @@ fun MeDropBottomSheet(
     LaunchedEffect(isQrModeActive, safeSettings, activeProfileType, contact) {
         if (isQrModeActive && contact != null) {
             withContext(Dispatchers.IO) {
+                val profile = safeSettings.getProfile(activeProfileType)
                 val vcardString = contact.toVCard(
                     context = context,
                     activeEntryIds = safeSettings.getEffectiveEntryIds(activeProfileType),
-                    customPhotoUri = null
+                    customPhotoUri = null,
+                    customDisplayName = if (activeProfileType != MeDropProfileType.CONTACT) profile.customDisplayName else null,
+                    fieldOverrides = profile.customFieldOverrides
                 )
                 val generated = QrCodeGenerator.generateQrBitmap(
                     content = vcardString,
@@ -766,10 +769,13 @@ fun MeDropBottomSheet(
                     Button(
                         onClick = {
                             HapticUtil.performVirtualKeyHaptic(view)
+                            val profile = safeSettings.getProfile(activeProfileType)
                             val vcardString = contact.toVCard(
                                 context = context,
                                 activeEntryIds = safeSettings.getEffectiveEntryIds(activeProfileType),
-                                customPhotoUri = safeSettings.getEffectivePhotoUri(activeProfileType)
+                                customPhotoUri = safeSettings.getEffectivePhotoUri(activeProfileType),
+                                customDisplayName = if (activeProfileType != MeDropProfileType.CONTACT) profile.customDisplayName else null,
+                                fieldOverrides = profile.customFieldOverrides
                             )
                             try {
                                 val cleanName = contact.displayName.replace(Regex("[^a-zA-Z0-9.-]"), "_").ifBlank { "contact" }

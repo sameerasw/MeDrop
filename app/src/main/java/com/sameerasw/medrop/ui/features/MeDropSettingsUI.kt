@@ -21,6 +21,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,6 +29,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -77,6 +79,8 @@ import com.sameerasw.medrop.ui.core.cards.IconToggleItem
 import com.sameerasw.medrop.ui.core.containers.RoundedCardContainer
 import com.sameerasw.medrop.ui.core.menus.SegmentedDropdownMenu
 import com.sameerasw.medrop.ui.core.menus.SegmentedDropdownMenuItem
+import com.sameerasw.medrop.ui.core.sheets.EditFieldBottomSheet
+import com.sameerasw.medrop.ui.core.sheets.FieldInputType
 import com.sameerasw.medrop.utils.HapticUtil
 import com.sameerasw.medrop.utils.MeDropContactPickerHelper
 import com.sameerasw.medrop.viewmodels.MeDropViewModel
@@ -87,6 +91,8 @@ private data class ProfileFieldItem(
     val iconRes: Int,
     val title: String,
     val subtitle: String? = null,
+    val inputType: FieldInputType = FieldInputType.TEXT,
+    val defaultValue: String? = null,
 )
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -106,6 +112,7 @@ fun MeDropHeaderUI(
     val contact = safeSettings.contact
 
     var isPhotoMenuExpanded by remember { mutableStateOf(false) }
+    var isEditingName by remember { mutableStateOf(false) }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -201,7 +208,7 @@ fun MeDropHeaderUI(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = contact.displayName.take(1).uppercase(),
+                            text = safeSettings.getEffectiveDisplayName(activeProfileType).take(1).uppercase(),
                             style = MaterialTheme.typography.displayLarge,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                             fontWeight = FontWeight.Bold,
@@ -292,36 +299,50 @@ fun MeDropHeaderUI(
 
         // Contact Header
         if (contact != null) {
-            Text(
-                text = contact.displayName,
+            val displayName = safeSettings.getEffectiveDisplayName(activeProfileType)
+            val canEditName = activeProfileType != MeDropProfileType.CONTACT
+
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp)
-                    .basicMarquee(),
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontFamily = FontFamily(
-                        Font(
-                            R.font.google_sans_flex,
-                            variationSettings = FontVariation.Settings(
-                                FontVariation.width(150f),
-                                FontVariation.weight(FontWeight.Normal.weight),
-                                FontVariation.Setting("ROND", 100f),
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable(enabled = canEditName) {
+                        HapticUtil.performVirtualKeyHaptic(view)
+                        isEditingName = true
+                    }
+                    .padding(vertical = 4.dp, horizontal = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = displayName,
+                    modifier = Modifier.basicMarquee(),
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        fontFamily = FontFamily(
+                            Font(
+                                R.font.google_sans_flex,
+                                variationSettings = FontVariation.Settings(
+                                    FontVariation.width(150f),
+                                    FontVariation.weight(FontWeight.Normal.weight),
+                                    FontVariation.Setting("ROND", 100f),
+                                ),
                             ),
                         ),
                     ),
-                ),
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                textAlign = TextAlign.Center,
-            )
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    textAlign = TextAlign.Center,
+                )
+            }
 
             val hasAnySubName = !contact.nickname.isNullOrBlank() || !contact.pronouns.isNullOrBlank()
             if (hasAnySubName) {
-                val showNickname = safeSettings.isEntrySelected(activeProfileType, "nickname") && !contact.nickname.isNullOrBlank()
-                val showPronouns = safeSettings.isEntrySelected(activeProfileType, "pronouns") && !contact.pronouns.isNullOrBlank()
+                val effNickname = safeSettings.getEffectiveFieldValue(activeProfileType, "nickname", contact.nickname)
+                val effPronouns = safeSettings.getEffectiveFieldValue(activeProfileType, "pronouns", contact.pronouns)
+                val showNickname = safeSettings.isEntrySelected(activeProfileType, "nickname") && !effNickname.isNullOrBlank()
+                val showPronouns = safeSettings.isEntrySelected(activeProfileType, "pronouns") && !effPronouns.isNullOrBlank()
                 val subName = if (showNickname || showPronouns) {
-                    val nickPart = if (showNickname) "\"${contact.nickname}\"" else null
-                    val pronounPart = if (showPronouns) "(${contact.pronouns})" else null
+                    val nickPart = if (showNickname) "\"$effNickname\"" else null
+                    val pronounPart = if (showPronouns) "($effPronouns)" else null
                     listOfNotNull(nickPart, pronounPart).joinToString(" ")
                 } else ""
 
@@ -344,6 +365,23 @@ fun MeDropHeaderUI(
                         Spacer(modifier = Modifier.height(0.dp))
                     }
                 }
+            }
+
+            if (isEditingName) {
+                EditFieldBottomSheet(
+                    title = stringResource(R.string.feat_medrop_edit_name_title),
+                    initialValue = safeSettings.getProfile(activeProfileType).customDisplayName ?: contact.displayName,
+                    defaultValue = contact.displayName,
+                    iconRes = R.drawable.rounded_contacts_product_24,
+                    inputType = FieldInputType.PERSON_NAME,
+                    onSave = { newName ->
+                        viewModel.updateMeDropProfileDisplayName(context, activeProfileType, newName)
+                    },
+                    onResetToDefault = {
+                        viewModel.updateMeDropProfileDisplayName(context, activeProfileType, null)
+                    },
+                    onDismissRequest = { isEditingName = false }
+                )
             }
         } else {
             FeatureCard(
@@ -370,124 +408,165 @@ fun MeDropProfileFieldsUI(
     val contact = safeSettings.contact ?: return
 
     var isEditVisibilityMode by remember { mutableStateOf(false) }
+    var activeEditingField by remember { mutableStateOf<ProfileFieldItem?>(null) }
 
-    val allFields = remember(contact) {
+    val allFields = remember(contact, safeSettings, profileType) {
         val list = mutableListOf<ProfileFieldItem>()
         if (!contact.nickname.isNullOrBlank()) {
+            val eff = safeSettings.getEffectiveFieldValue(profileType, "nickname", contact.nickname) ?: ""
             list.add(
                 ProfileFieldItem(
                     id = "nickname",
                     iconRes = R.drawable.rounded_app_registration_24,
-                    title = contact.nickname,
+                    title = eff,
                     subtitle = context.getString(R.string.feat_medrop_field_nickname),
+                    inputType = FieldInputType.TEXT,
+                    defaultValue = contact.nickname,
                 )
             )
         }
         if (!contact.pronouns.isNullOrBlank()) {
+            val eff = safeSettings.getEffectiveFieldValue(profileType, "pronouns", contact.pronouns) ?: ""
             list.add(
                 ProfileFieldItem(
                     id = "pronouns",
                     iconRes = R.drawable.rounded_heart_smile_24,
-                    title = contact.pronouns,
+                    title = eff,
                     subtitle = context.getString(R.string.feat_medrop_field_pronouns),
+                    inputType = FieldInputType.TEXT,
+                    defaultValue = contact.pronouns,
                 )
             )
         }
         if (!contact.birthday.isNullOrBlank()) {
+            val eff = safeSettings.getEffectiveFieldValue(profileType, "birthday", contact.birthday) ?: ""
             list.add(
                 ProfileFieldItem(
                     id = "birthday",
                     iconRes = R.drawable.rounded_calendar_today_24,
-                    title = contact.birthday,
+                    title = eff,
                     subtitle = context.getString(R.string.feat_medrop_field_birthday),
+                    inputType = FieldInputType.DATE,
+                    defaultValue = contact.birthday,
                 )
             )
         }
         contact.getSafePhones().forEachIndexed { i, phone ->
+            val eff = safeSettings.getEffectiveFieldValue(profileType, "phone_$i", phone) ?: ""
             list.add(
                 ProfileFieldItem(
                     id = "phone_$i",
                     iconRes = R.drawable.rounded_call_log_24,
-                    title = phone,
+                    title = eff,
+                    subtitle = context.getString(R.string.feat_medrop_field_phone),
+                    inputType = FieldInputType.PHONE,
+                    defaultValue = phone,
                 )
             )
         }
         contact.getSafeEmails().forEachIndexed { i, email ->
+            val eff = safeSettings.getEffectiveFieldValue(profileType, "email_$i", email) ?: ""
             list.add(
                 ProfileFieldItem(
                     id = "email_$i",
                     iconRes = R.drawable.rounded_mail_24,
-                    title = email,
+                    title = eff,
+                    subtitle = context.getString(R.string.feat_medrop_field_email),
+                    inputType = FieldInputType.EMAIL,
+                    defaultValue = email,
                 )
             )
         }
         if (!contact.organization.isNullOrBlank()) {
+            val eff = safeSettings.getEffectiveFieldValue(profileType, "organization", contact.organization) ?: ""
             list.add(
                 ProfileFieldItem(
                     id = "organization",
                     iconRes = R.drawable.rounded_work_24,
-                    title = contact.organization,
+                    title = eff,
                     subtitle = context.getString(R.string.feat_medrop_field_organization),
+                    inputType = FieldInputType.TEXT,
+                    defaultValue = contact.organization,
                 )
             )
         }
         if (!contact.department.isNullOrBlank()) {
+            val eff = safeSettings.getEffectiveFieldValue(profileType, "department", contact.department) ?: ""
             list.add(
                 ProfileFieldItem(
                     id = "department",
                     iconRes = R.drawable.rounded_work_24,
-                    title = contact.department,
+                    title = eff,
                     subtitle = context.getString(R.string.feat_medrop_field_department),
+                    inputType = FieldInputType.TEXT,
+                    defaultValue = contact.department,
                 )
             )
         }
         if (!contact.jobTitle.isNullOrBlank()) {
+            val eff = safeSettings.getEffectiveFieldValue(profileType, "jobTitle", contact.jobTitle) ?: ""
             list.add(
                 ProfileFieldItem(
                     id = "jobTitle",
                     iconRes = R.drawable.rounded_work_24,
-                    title = contact.jobTitle,
+                    title = eff,
                     subtitle = context.getString(R.string.feat_medrop_field_job_title),
+                    inputType = FieldInputType.TEXT,
+                    defaultValue = contact.jobTitle,
                 )
             )
         }
         if (!contact.role.isNullOrBlank()) {
+            val eff = safeSettings.getEffectiveFieldValue(profileType, "role", contact.role) ?: ""
             list.add(
                 ProfileFieldItem(
                     id = "role",
                     iconRes = R.drawable.rounded_work_24,
-                    title = contact.role,
+                    title = eff,
                     subtitle = context.getString(R.string.feat_medrop_field_role),
+                    inputType = FieldInputType.TEXT,
+                    defaultValue = contact.role,
                 )
             )
         }
         contact.getSafeAddresses().forEachIndexed { i, addr ->
             val addrType = contact.getSafeAddressTypes().getOrNull(i)
             val tag = if (addrType == 2) context.getString(R.string.feat_medrop_address_work) else context.getString(R.string.feat_medrop_address_home)
+            val eff = safeSettings.getEffectiveFieldValue(profileType, "address_$i", addr) ?: ""
             list.add(
                 ProfileFieldItem(
                     id = "address_$i",
                     iconRes = R.drawable.rounded_location_on_24,
-                    title = addr.replace("\n", ", "),
+                    title = eff.replace("\n", ", "),
                     subtitle = tag,
+                    inputType = FieldInputType.MULTILINE,
+                    defaultValue = addr,
                 )
             )
         }
         contact.getSafeUrls().forEachIndexed { i, url ->
+            val eff = safeSettings.getEffectiveFieldValue(profileType, "url_$i", url) ?: ""
             list.add(
                 ProfileFieldItem(
                     id = "url_$i",
                     iconRes = R.drawable.rounded_globe_24,
-                    title = url,
+                    title = eff,
+                    subtitle = context.getString(R.string.feat_medrop_field_url),
+                    inputType = FieldInputType.URL,
+                    defaultValue = url,
                 )
             )
         }
         if (!contact.note.isNullOrBlank()) {
+            val eff = safeSettings.getEffectiveFieldValue(profileType, "note", contact.note) ?: ""
             list.add(
                 ProfileFieldItem(
                     id = "note",
                     iconRes = R.drawable.rounded_info_24,
-                    title = contact.note,
+                    title = eff,
+                    subtitle = context.getString(R.string.feat_medrop_field_note),
+                    inputType = FieldInputType.MULTILINE,
+                    defaultValue = contact.note,
                 )
             )
         }
@@ -534,12 +613,14 @@ fun MeDropProfileFieldsUI(
                         title = item.title,
                         subtitle = item.subtitle,
                         showToggle = false,
-                        onClick = if (isEditVisibilityMode) {
-                            {
-                                HapticUtil.performVirtualKeyHaptic(view)
+                        onClick = {
+                            HapticUtil.performVirtualKeyHaptic(view)
+                            if (isEditVisibilityMode) {
                                 viewModel.toggleMeDropProfileEntry(context, profileType, item.id, false)
+                            } else {
+                                activeEditingField = item
                             }
-                        } else null,
+                        },
                         trailingIcon = if (isEditVisibilityMode) {
                             {
                                 Icon(
@@ -638,6 +719,25 @@ fun MeDropProfileFieldsUI(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(200.dp)
+        )
+    }
+
+    val editing = activeEditingField
+    if (editing != null) {
+        val currentVal = safeSettings.getEffectiveFieldValue(profileType, editing.id, editing.defaultValue) ?: ""
+        EditFieldBottomSheet(
+            title = stringResource(R.string.feat_medrop_edit_field_title, editing.subtitle ?: editing.id),
+            initialValue = currentVal,
+            defaultValue = editing.defaultValue,
+            iconRes = editing.iconRes,
+            inputType = editing.inputType,
+            onSave = { newValue ->
+                viewModel.updateMeDropProfileFieldValue(context, profileType, editing.id, newValue)
+            },
+            onResetToDefault = {
+                viewModel.updateMeDropProfileFieldValue(context, profileType, editing.id, null)
+            },
+            onDismissRequest = { activeEditingField = null }
         )
     }
 }
