@@ -45,9 +45,6 @@ fun MeDropTheme(
                         surfaceContainer = Color.Black,
                         surfaceContainerLowest = Color.Black,
                         surfaceContainerLow = Color.Black,
-                        surfaceContainerHigh = Color.Black,
-                        surfaceContainerHighest = Color.Black,
-                        surfaceVariant = Color.Black,
                     )
                 } else {
                     dynamicScheme
@@ -62,9 +59,6 @@ fun MeDropTheme(
                         surfaceContainer = Color.Black,
                         surfaceContainerLowest = Color.Black,
                         surfaceContainerLow = Color.Black,
-                        surfaceContainerHigh = Color.Black,
-                        surfaceContainerHighest = Color.Black,
-                        surfaceVariant = Color.Black,
                     )
                 } else {
                     DarkColorScheme
