@@ -1,3 +1,47 @@
 <resources>
     <string name="app_name">MeDrop</string>
+    <string name="feat_medrop_title">MeDrop</string>
+    <string name="feat_medrop_set_up">Set Up</string>
+    <string name="feat_medrop_select_contact">Select Contact</string>
+    <string name="feat_medrop_change_contact">Change Contact</string>
+    <string name="feat_medrop_allow_when_locked">Allow when Locked</string>
+    <string name="feat_medrop_allow_when_locked_desc">Open MeDrop from the quick tile even when the screen is locked</string>
+    <string name="feat_medrop_tap_to_share">Tap to share</string>
+    <string name="feat_medrop_no_contact">No contact selected</string>
+    <string name="feat_medrop_no_contact_desc">Tap below to choose a contact to share via NFC</string>
+    <string name="feat_medrop_include_photo">Include profile photo</string>
+    <string name="feat_medrop_share_fields_title">What to share</string>
+    <string name="feat_medrop_field_nickname">Nickname</string>
+    <string name="feat_medrop_field_pronouns">Pronouns</string>
+    <string name="feat_medrop_field_birthday">Birthday</string>
+    <string name="feat_medrop_field_organization">Company</string>
+    <string name="feat_medrop_field_department">Department</string>
+    <string name="feat_medrop_field_job_title">Job title</string>
+    <string name="feat_medrop_field_role">Role</string>
+    <string name="feat_medrop_choose_custom_photo">Choose custom photo</string>
+    <string name="feat_medrop_remove_custom_photo">Remove photo</string>
+    <string name="feat_medrop_hold_near">Hold near another device</string>
+    <string name="feat_medrop_broadcasting">Broadcasting contact via NFC…</string>
+    <string name="feat_medrop_nfc_unavailable">NFC is not available on this device</string>
+    <string name="feat_medrop_nfc_disabled">NFC is disabled. Enable it in Settings to share.</string>
+    <string name="feat_medrop_profile_contact">Contact</string>
+    <string name="feat_medrop_profile_professional">Professional</string>
+    <string name="feat_medrop_profile_custom">Custom</string>
+    <string name="feat_medrop_use_photo_for_all">Use for all profiles</string>
+    <string name="feat_medrop_use_photo_for_all_desc">Use the contact photo across all profiles</string>
+    <string name="feat_medrop_profile_enabled">Enable this profile</string>
+    <string name="feat_medrop_profile_enabled_desc">Make this profile available when sharing via NFC</string>
+    <string name="feat_medrop_section_contact_source">Contact Source</string>
+    <string name="feat_medrop_section_photo">Profile Photo</string>
+    <string name="feat_medrop_section_fields">What to Share</string>
+    <string name="feat_medrop_address_work">Work</string>
+    <string name="feat_medrop_address_home">Home</string>
+    <string name="feat_medrop_action_share">Share vCard</string>
+    <string name="feat_medrop_action_qr">QR Code</string>
+    <string name="about_desc_medrop">Share your contact card with another device using NFC — similar to Apple\'s NameDrop. Your phone acts as a virtual NFC card that any NFC-enabled device can read.</string>
+
+    <string name="content_desc_back">Back</string>
+    <string name="action_help_guide">Help Guide</string>
+    <string name="label_beta">BETA</string>
+    <string name="action_settings">Settings</string>
 </resources>

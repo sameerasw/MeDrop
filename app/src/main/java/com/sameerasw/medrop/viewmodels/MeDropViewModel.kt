@@ -1,0 +1,121 @@
+package com.sameerasw.medrop.viewmodels
+
+import android.content.Context
+import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.ViewModel
+import com.google.gson.Gson
+import com.sameerasw.medrop.data.repository.MeDropRepository
+import com.sameerasw.medrop.domain.model.MeDropContact
+import com.sameerasw.medrop.domain.model.MeDropProfile
+import com.sameerasw.medrop.domain.model.MeDropProfileType
+import com.sameerasw.medrop.domain.model.MeDropSettings
+
+class MeDropViewModel : ViewModel() {
+    val meDropSettings = mutableStateOf<MeDropSettings?>(null)
+    val isMeDropAllowWhenLocked = mutableStateOf(false)
+    val isPitchBlackThemeEnabled = mutableStateOf(false)
+    val isBlurEnabled = mutableStateOf(true)
+
+    fun check(context: Context) {
+        val repo = MeDropRepository(context)
+        isPitchBlackThemeEnabled.value = repo.isPitchBlackThemeEnabled()
+        isBlurEnabled.value = repo.isBlurEnabled()
+        loadMeDropSettings(context)
+    }
+
+    fun loadMeDropSettings(context: Context) {
+        val repo = MeDropRepository(context)
+        val json = repo.getMeDropSettingsJson()
+        meDropSettings.value =
+            if (json != null) {
+                try {
+                    Gson().fromJson(json, MeDropSettings::class.java)
+                } catch (_: Exception) {
+                    MeDropSettings()
+                }
+            } else {
+                MeDropSettings()
+            }
+        isMeDropAllowWhenLocked.value = repo.isMeDropAllowWhenLocked()
+    }
+
+    fun saveMeDropSettings(
+        context: Context,
+        settings: MeDropSettings?,
+    ) {
+        meDropSettings.value = settings
+        val json = if (settings != null) Gson().toJson(settings) else null
+        MeDropRepository(context).setMeDropSettingsJson(json)
+    }
+
+    fun setMeDropContact(
+        context: Context,
+        contact: MeDropContact?,
+    ) {
+        val current = meDropSettings.value ?: MeDropSettings()
+        val updated = current.copy(contact = contact)
+        saveMeDropSettings(context, updated)
+    }
+
+    fun setMeDropAllowWhenLocked(context: Context, enabled: Boolean) {
+        MeDropRepository(context).setMeDropAllowWhenLocked(enabled)
+        isMeDropAllowWhenLocked.value = enabled
+        val current = meDropSettings.value ?: MeDropSettings()
+        saveMeDropSettings(context, current.copy(allowWhenLocked = enabled))
+    }
+
+    fun setMeDropProfileEnabled(
+        context: Context,
+        type: MeDropProfileType,
+        enabled: Boolean,
+    ) {
+        val current = meDropSettings.value ?: MeDropSettings()
+        val profile = current.getProfile(type).copy(enabled = enabled)
+        val updated = current.updateProfile(profile)
+        saveMeDropSettings(context, updated)
+    }
+
+    fun setMeDropActiveProfile(
+        context: Context,
+        type: MeDropProfileType,
+    ) {
+        val current = meDropSettings.value ?: MeDropSettings()
+        val updated = current.copy(activeProfileType = type)
+        saveMeDropSettings(context, updated)
+    }
+
+    fun setMeDropUsePhotoForAll(context: Context, enabled: Boolean) {
+        val current = meDropSettings.value ?: MeDropSettings()
+        val updated = current.copy(usePhotoForAll = enabled)
+        saveMeDropSettings(context, updated)
+    }
+
+    fun toggleMeDropProfileEntry(
+        context: Context,
+        type: MeDropProfileType,
+        entryId: String,
+        enabled: Boolean,
+    ) {
+        val current = meDropSettings.value ?: MeDropSettings()
+        val effective = current.getEffectiveEntryIds(type).toMutableSet()
+        if (enabled) {
+            effective.add(entryId)
+        } else {
+            effective.remove(entryId)
+        }
+        val profile = current.getProfile(type).copy(selectedEntryIds = effective)
+        val updated = current.updateProfile(profile)
+        saveMeDropSettings(context, updated)
+    }
+
+    fun updateMeDropProfilePhoto(
+        context: Context,
+        type: MeDropProfileType,
+        photoUri: String?,
+    ) {
+        val current = meDropSettings.value ?: MeDropSettings()
+        val profile = current.getProfile(type).copy(photoUri = photoUri)
+        val updated = current.updateProfile(profile)
+        saveMeDropSettings(context, updated)
+    }
+}
