@@ -13,7 +13,7 @@ class MeDropRepository(context: Context) {
         prefs.edit().putString(KEY_MEDROP_SETTINGS_JSON, json).apply()
     }
 
-    fun isMeDropAllowWhenLocked(): Boolean = prefs.getBoolean(KEY_MEDROP_ALLOW_WHEN_LOCKED, false)
+    fun isMeDropAllowWhenLocked(): Boolean = prefs.getBoolean(KEY_MEDROP_ALLOW_WHEN_LOCKED, true)
 
     fun setMeDropAllowWhenLocked(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_MEDROP_ALLOW_WHEN_LOCKED, enabled).apply()

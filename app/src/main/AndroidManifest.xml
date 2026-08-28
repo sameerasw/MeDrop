@@ -40,10 +40,10 @@
             android:excludeFromRecents="true"
             android:exported="false"
             android:label="@string/feat_medrop_title"
-            android:launchMode="singleTask"
             android:noHistory="true"
             android:showOnLockScreen="true"
             android:showWhenLocked="true"
+            android:taskAffinity=""
             android:theme="@style/Theme.MeDrop.Translucent"
             android:turnScreenOn="true" />
 

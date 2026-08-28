@@ -6,7 +6,7 @@ data class MeDropSettings(
     val professionalProfile: MeDropProfile = MeDropProfile(MeDropProfileType.PROFESSIONAL, enabled = false),
     val customProfile: MeDropProfile = MeDropProfile(MeDropProfileType.CUSTOM, enabled = false),
     val usePhotoForAll: Boolean = true,
-    val allowWhenLocked: Boolean = false,
+    val allowWhenLocked: Boolean = true,
     val activeProfileType: MeDropProfileType = MeDropProfileType.CONTACT
 ) {
     fun getProfile(type: MeDropProfileType): MeDropProfile {

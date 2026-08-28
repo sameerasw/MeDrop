@@ -13,7 +13,7 @@ import com.sameerasw.medrop.utils.PermissionUtils
 
 class MeDropViewModel : ViewModel() {
     val meDropSettings = mutableStateOf<MeDropSettings?>(null)
-    val isMeDropAllowWhenLocked = mutableStateOf(false)
+    val isMeDropAllowWhenLocked = mutableStateOf(true)
     val isPitchBlackThemeEnabled = mutableStateOf(false)
     val isBlurEnabled = mutableStateOf(true)
     val hasContactsPermission = mutableStateOf(false)
