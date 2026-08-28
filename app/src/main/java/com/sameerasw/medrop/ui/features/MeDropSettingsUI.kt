@@ -3,6 +3,7 @@ package com.sameerasw.medrop.ui.features
 import android.graphics.Matrix
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
@@ -13,13 +14,13 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -90,10 +91,10 @@ private data class ProfileFieldItem(
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun MeDropSettingsUI(
+fun MeDropHeaderUI(
     viewModel: MeDropViewModel,
     headerHeight: Dp = 200.dp,
-    selectedTab: MeDropProfileType = MeDropProfileType.CONTACT,
+    activeProfileType: MeDropProfileType = MeDropProfileType.CONTACT,
     onPickContactClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -105,24 +106,23 @@ fun MeDropSettingsUI(
     val contact = safeSettings.contact
 
     var isPhotoMenuExpanded by remember { mutableStateOf(false) }
-    var isEditVisibilityMode by remember { mutableStateOf(false) }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         if (uri != null) {
             scope.launch {
-                val savedUri = MeDropContactPickerHelper.saveCompressedCustomPhoto(uri, context, selectedTab)
+                val savedUri = MeDropContactPickerHelper.saveCompressedCustomPhoto(uri, context, activeProfileType)
                 if (savedUri != null) {
-                    viewModel.updateMeDropProfilePhoto(context, selectedTab, savedUri)
+                    viewModel.updateMeDropProfilePhoto(context, activeProfileType, savedUri)
                 }
             }
         }
     }
 
-    val currentPhotoUri = safeSettings.getEffectivePhotoUri(selectedTab)
+    val currentPhotoUri = safeSettings.getEffectivePhotoUri(activeProfileType)
 
-    val targetPolygon = when (selectedTab) {
+    val targetPolygon = when (activeProfileType) {
         MeDropProfileType.CONTACT -> MaterialShapes.Cookie12Sided
         MeDropProfileType.PROFESSIONAL -> MaterialShapes.Pill
         MeDropProfileType.CUSTOM -> MaterialShapes.Cookie4Sided
@@ -269,14 +269,14 @@ fun MeDropSettingsUI(
                         },
                     )
 
-                    val customPhotoOnProfile = safeSettings.getProfile(selectedTab).photoUri
-                    if (!customPhotoOnProfile.isNullOrBlank() || (!currentPhotoUri.isNullOrBlank() && selectedTab == MeDropProfileType.CONTACT)) {
+                    val customPhotoOnProfile = safeSettings.getProfile(activeProfileType).photoUri
+                    if (!customPhotoOnProfile.isNullOrBlank() || (!currentPhotoUri.isNullOrBlank() && activeProfileType == MeDropProfileType.CONTACT)) {
                         SegmentedDropdownMenuItem(
                             text = { Text(stringResource(R.string.feat_medrop_remove_custom_photo)) },
                             onClick = {
                                 isPhotoMenuExpanded = false
                                 HapticUtil.performVirtualKeyHaptic(view)
-                                viewModel.updateMeDropProfilePhoto(context, selectedTab, null)
+                                viewModel.updateMeDropProfilePhoto(context, activeProfileType, null)
                             },
                             leadingIcon = {
                                 Icon(
@@ -315,56 +315,61 @@ fun MeDropSettingsUI(
                 textAlign = TextAlign.Center,
             )
 
-            val showNickname = safeSettings.isEntrySelected(selectedTab, "nickname") && !contact.nickname.isNullOrBlank()
-            val showPronouns = safeSettings.isEntrySelected(selectedTab, "pronouns") && !contact.pronouns.isNullOrBlank()
-            if (showNickname || showPronouns) {
-                val nickPart = if (showNickname) "\"${contact.nickname}\"" else null
-                val pronounPart = if (showPronouns) "(${contact.pronouns})" else null
-                val subName = listOfNotNull(nickPart, pronounPart).joinToString(" ")
-                Text(
-                    text = subName,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.basicMarquee(),
-                )
-            }
-        }
+            val hasAnySubName = !contact.nickname.isNullOrBlank() || !contact.pronouns.isNullOrBlank()
+            if (hasAnySubName) {
+                val showNickname = safeSettings.isEntrySelected(activeProfileType, "nickname") && !contact.nickname.isNullOrBlank()
+                val showPronouns = safeSettings.isEntrySelected(activeProfileType, "pronouns") && !contact.pronouns.isNullOrBlank()
+                val subName = if (showNickname || showPronouns) {
+                    val nickPart = if (showNickname) "\"${contact.nickname}\"" else null
+                    val pronounPart = if (showPronouns) "(${contact.pronouns})" else null
+                    listOfNotNull(nickPart, pronounPart).joinToString(" ")
+                } else ""
 
-        if (contact == null) {
+                AnimatedContent(
+                    targetState = subName,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(220)).togetherWith(fadeOut(animationSpec = tween(150)))
+                    },
+                    label = "subname_transition",
+                ) { targetSubName ->
+                    if (targetSubName.isNotBlank()) {
+                        Text(
+                            text = targetSubName,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.basicMarquee(),
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.height(0.dp))
+                    }
+                }
+            }
+        } else {
             FeatureCard(
                 title = stringResource(R.string.feat_medrop_select_contact),
                 description = stringResource(R.string.feat_medrop_no_contact_desc),
                 iconRes = R.drawable.rounded_contacts_product_24,
                 onClick = onPickContactClick,
             )
-        } else {
-            ProfileFieldsManager(
-                type = selectedTab,
-                contact = contact,
-                settings = safeSettings,
-                viewModel = viewModel,
-                isEditMode = isEditVisibilityMode,
-                onToggleEditMode = {
-                    HapticUtil.performVirtualKeyHaptic(view)
-                    isEditVisibilityMode = !isEditVisibilityMode
-                },
-            )
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ProfileFieldsManager(
-    type: MeDropProfileType,
-    contact: MeDropContact,
-    settings: MeDropSettings,
+fun MeDropProfileFieldsUI(
     viewModel: MeDropViewModel,
-    isEditMode: Boolean,
-    onToggleEditMode: () -> Unit,
+    profileType: MeDropProfileType,
+    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val view = LocalView.current
+    val settings by viewModel.meDropSettings
+    val safeSettings = settings ?: MeDropSettings()
+    val contact = safeSettings.contact ?: return
+
+    var isEditVisibilityMode by remember { mutableStateOf(false) }
 
     val allFields = remember(contact) {
         val list = mutableListOf<ProfileFieldItem>()
@@ -489,18 +494,18 @@ private fun ProfileFieldsManager(
         list
     }
 
-    val visibleCount = allFields.count { settings.isEntrySelected(type, it.id) }
-    val hiddenCount = allFields.size - visibleCount
+    val visibleCount = allFields.count { safeSettings.isEntrySelected(profileType, it.id) }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
+            .padding(horizontal = 16.dp)
             .animateContentSize(animationSpec = spring(stiffness = 500f)),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         // Visible Fields Section
         Text(
-            text = if (isEditMode) {
+            text = if (isEditVisibilityMode) {
                 stringResource(R.string.feat_medrop_section_visible_fields)
             } else {
                 stringResource(R.string.feat_medrop_section_fields)
@@ -518,7 +523,7 @@ private fun ProfileFieldsManager(
                 .animateContentSize(animationSpec = spring(stiffness = 500f))
         ) {
             allFields.forEach { item ->
-                val isVisible = settings.isEntrySelected(type, item.id)
+                val isVisible = safeSettings.isEntrySelected(profileType, item.id)
                 AnimatedVisibility(
                     visible = isVisible,
                     enter = fadeIn(animationSpec = tween(250)) + expandVertically(animationSpec = spring(stiffness = 500f)),
@@ -529,13 +534,13 @@ private fun ProfileFieldsManager(
                         title = item.title,
                         subtitle = item.subtitle,
                         showToggle = false,
-                        onClick = if (isEditMode) {
+                        onClick = if (isEditVisibilityMode) {
                             {
                                 HapticUtil.performVirtualKeyHaptic(view)
-                                viewModel.toggleMeDropProfileEntry(context, type, item.id, false)
+                                viewModel.toggleMeDropProfileEntry(context, profileType, item.id, false)
                             }
                         } else null,
-                        trailingIcon = if (isEditMode) {
+                        trailingIcon = if (isEditVisibilityMode) {
                             {
                                 Icon(
                                     painter = painterResource(R.drawable.rounded_remove_24),
@@ -560,7 +565,7 @@ private fun ProfileFieldsManager(
 
         // Hidden Fields Section (in Edit mode)
         AnimatedVisibility(
-            visible = isEditMode,
+            visible = isEditVisibilityMode,
             enter = fadeIn(animationSpec = tween(300)) + expandVertically(animationSpec = spring(stiffness = 500f)),
             exit = fadeOut(animationSpec = tween(250)) + shrinkVertically(animationSpec = spring(stiffness = 500f)),
         ) {
@@ -585,7 +590,7 @@ private fun ProfileFieldsManager(
                         .animateContentSize(animationSpec = spring(stiffness = 500f))
                 ) {
                     allFields.forEach { item ->
-                        val isHidden = !settings.isEntrySelected(type, item.id)
+                        val isHidden = !safeSettings.isEntrySelected(profileType, item.id)
                         AnimatedVisibility(
                             visible = isHidden,
                             enter = fadeIn(animationSpec = tween(250)) + expandVertically(animationSpec = spring(stiffness = 500f)),
@@ -598,7 +603,7 @@ private fun ProfileFieldsManager(
                                 showToggle = false,
                                 onClick = {
                                     HapticUtil.performVirtualKeyHaptic(view)
-                                    viewModel.toggleMeDropProfileEntry(context, type, item.id, true)
+                                    viewModel.toggleMeDropProfileEntry(context, profileType, item.id, true)
                                 },
                                 trailingIcon = {
                                     Icon(
@@ -617,12 +622,22 @@ private fun ProfileFieldsManager(
 
         // List Expand Toggle Button for Edit/Save Visibility
         ListExpandToggleButton(
-            isExpanded = isEditMode,
-            onToggle = onToggleEditMode,
+            isExpanded = isEditVisibilityMode,
+            onToggle = {
+                HapticUtil.performVirtualKeyHaptic(view)
+                isEditVisibilityMode = !isEditVisibilityMode
+            },
             expandedText = stringResource(R.string.feat_medrop_save_visibility),
             collapsedText = stringResource(R.string.feat_medrop_edit_visibility),
             collapsedIconRes = R.drawable.rounded_edit_24,
             expandedIconRes = R.drawable.rounded_check_24,
+        )
+
+        // Empty area inside the page item to ensure full-width swipe surface down below
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
         )
     }
 }

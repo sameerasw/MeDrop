@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
@@ -62,7 +63,8 @@ import com.sameerasw.medrop.ui.components.MeDropFloatingToolbar
 import com.sameerasw.medrop.ui.components.ToolbarItem
 import com.sameerasw.medrop.ui.core.sheets.PermissionItem
 import com.sameerasw.medrop.ui.core.sheets.PermissionsBottomSheet
-import com.sameerasw.medrop.ui.features.MeDropSettingsUI
+import com.sameerasw.medrop.ui.features.MeDropHeaderUI
+import com.sameerasw.medrop.ui.features.MeDropProfileFieldsUI
 import com.sameerasw.medrop.ui.modifiers.BlurDirection
 import com.sameerasw.medrop.ui.modifiers.progressiveBlur
 import com.sameerasw.medrop.ui.theme.MeDropTheme
@@ -277,6 +279,8 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
+            val activeProfileType = enabledTabs.getOrNull(pagerState.currentPage) ?: MeDropProfileType.CONTACT
+
             MeDropTheme(pitchBlackTheme = isPitchBlackThemeEnabled) {
                 Scaffold(
                     contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -300,47 +304,57 @@ class MainActivity : AppCompatActivity() {
                                     direction = BlurDirection.TOP,
                                 ),
                     ) {
-                        HorizontalPager(
-                            state = pagerState,
-                            modifier = Modifier.fillMaxSize(),
-                        ) { page ->
-                            val currentProfileType = enabledTabs.getOrNull(page) ?: MeDropProfileType.CONTACT
-                            Column(
+                        Column(
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .progressiveBlur(
+                                        blurRadius = if (isBlurEnabled) 40f else 0f,
+                                        height = with(density) { 150.dp.toPx() },
+                                        direction = BlurDirection.BOTTOM,
+                                    )
+                                    .nestedScroll(nestedScrollConnection)
+                                    .verticalScroll(rememberScrollState()),
+                        ) {
+                            Spacer(
                                 modifier =
-                                    Modifier
-                                        .fillMaxSize()
-                                        .progressiveBlur(
-                                            blurRadius = if (isBlurEnabled) 40f else 0f,
-                                            height = with(density) { 150.dp.toPx() },
-                                            direction = BlurDirection.BOTTOM,
-                                        )
-                                        .nestedScroll(nestedScrollConnection)
-                                        .verticalScroll(rememberScrollState()),
-                            ) {
-                                Spacer(
-                                    modifier =
-                                        Modifier.height(
-                                            WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
-                                        ),
-                                )
+                                    Modifier.height(
+                                        WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
+                                    ),
+                            )
 
-                                MeDropSettingsUI(
-                                    viewModel = viewModel,
-                                    headerHeight = headerHeight,
-                                    selectedTab = currentProfileType,
-                                    onPickContactClick = onPickContactClick,
-                                    modifier = Modifier.padding(top = 4.dp),
-                                )
+                            // Common Top Header: Photo (with morphing shape) & Contact Name
+                            MeDropHeaderUI(
+                                viewModel = viewModel,
+                                headerHeight = headerHeight,
+                                activeProfileType = activeProfileType,
+                                onPickContactClick = onPickContactClick,
+                                modifier = Modifier.padding(top = 4.dp),
+                            )
 
-                                Spacer(
-                                    modifier =
-                                        Modifier.height(
-                                            WindowInsets.navigationBars
-                                                .asPaddingValues()
-                                                .calculateBottomPadding() + 150.dp,
-                                        ),
-                                )
+                            // Swipeable Fields Area per Tab
+                            if (safeSettings.contact != null) {
+                                HorizontalPager(
+                                    state = pagerState,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.Top,
+                                ) { page ->
+                                    val currentProfileType = enabledTabs.getOrNull(page) ?: MeDropProfileType.CONTACT
+                                    MeDropProfileFieldsUI(
+                                        viewModel = viewModel,
+                                        profileType = currentProfileType,
+                                    )
+                                }
                             }
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(
+                                        WindowInsets.navigationBars
+                                            .asPaddingValues()
+                                            .calculateBottomPadding() + 150.dp,
+                                    ),
+                            )
                         }
 
                         MeDropFloatingToolbar(
