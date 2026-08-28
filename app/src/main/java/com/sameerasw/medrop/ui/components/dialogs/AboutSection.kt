@@ -200,6 +200,23 @@ fun AboutSection(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(R.string.action_support))
                 }
+
+                OutlinedButton(
+                    onClick = {
+                        val websiteUrl = "https://sameerasw.com/medrop-privacy"
+                        val intent = Intent(Intent.ACTION_VIEW, websiteUrl.toUri())
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.rounded_lock_24),
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.action_privacy_policy))
+                }
             }
 
             Text(

@@ -109,6 +109,7 @@
     <string name="action_contact">Contact</string>
     <string name="action_telegram">Telegram</string>
     <string name="action_support">Support</string>
+    <string name="action_privacy_policy">Privacy Policy</string>
     <string name="label_other_apps">Other Apps</string>
     <string name="app_essentials">Essentials</string>
     <string name="app_airsync">AirSync</string>
