@@ -450,164 +450,233 @@ fun MeDropProfileFieldsUI(
 
     val allFields = remember(contact, safeSettings, profileType) {
         val list = mutableListOf<ProfileFieldItem>()
-        if (!contact.nickname.isNullOrBlank()) {
-            val eff = safeSettings.getEffectiveFieldValue(profileType, "nickname", contact.nickname) ?: ""
-            list.add(
-                ProfileFieldItem(
-                    id = "nickname",
-                    iconRes = R.drawable.rounded_app_registration_24,
-                    title = eff,
-                    subtitle = context.getString(R.string.feat_medrop_field_nickname),
-                    inputType = FieldInputType.TEXT,
-                    defaultValue = contact.nickname,
-                )
+        
+        // Nickname
+        val effNickname = safeSettings.getEffectiveFieldValue(profileType, "nickname", contact?.nickname) ?: ""
+        list.add(
+            ProfileFieldItem(
+                id = "nickname",
+                iconRes = R.drawable.rounded_app_registration_24,
+                title = effNickname.ifBlank { context.getString(R.string.feat_medrop_field_nickname) },
+                subtitle = context.getString(R.string.feat_medrop_field_nickname),
+                inputType = FieldInputType.TEXT,
+                defaultValue = contact?.nickname,
             )
-        }
-        if (!contact.pronouns.isNullOrBlank()) {
-            val eff = safeSettings.getEffectiveFieldValue(profileType, "pronouns", contact.pronouns) ?: ""
-            list.add(
-                ProfileFieldItem(
-                    id = "pronouns",
-                    iconRes = R.drawable.rounded_heart_smile_24,
-                    title = eff,
-                    subtitle = context.getString(R.string.feat_medrop_field_pronouns),
-                    inputType = FieldInputType.TEXT,
-                    defaultValue = contact.pronouns,
-                )
+        )
+
+        // Pronouns
+        val effPronouns = safeSettings.getEffectiveFieldValue(profileType, "pronouns", contact?.pronouns) ?: ""
+        list.add(
+            ProfileFieldItem(
+                id = "pronouns",
+                iconRes = R.drawable.rounded_heart_smile_24,
+                title = effPronouns.ifBlank { context.getString(R.string.feat_medrop_field_pronouns) },
+                subtitle = context.getString(R.string.feat_medrop_field_pronouns),
+                inputType = FieldInputType.TEXT,
+                defaultValue = contact?.pronouns,
             )
-        }
-        if (!contact.birthday.isNullOrBlank()) {
-            val eff = safeSettings.getEffectiveFieldValue(profileType, "birthday", contact.birthday) ?: ""
-            list.add(
-                ProfileFieldItem(
-                    id = "birthday",
-                    iconRes = R.drawable.rounded_calendar_today_24,
-                    title = eff,
-                    subtitle = context.getString(R.string.feat_medrop_field_birthday),
-                    inputType = FieldInputType.DATE,
-                    defaultValue = contact.birthday,
-                )
+        )
+
+        // Birthday
+        val effBirthday = safeSettings.getEffectiveFieldValue(profileType, "birthday", contact?.birthday) ?: ""
+        list.add(
+            ProfileFieldItem(
+                id = "birthday",
+                iconRes = R.drawable.rounded_calendar_today_24,
+                title = effBirthday.ifBlank { context.getString(R.string.feat_medrop_field_birthday) },
+                subtitle = context.getString(R.string.feat_medrop_field_birthday),
+                inputType = FieldInputType.DATE,
+                defaultValue = contact?.birthday,
             )
-        }
-        contact.getSafePhones().forEachIndexed { i, phone ->
-            val eff = safeSettings.getEffectiveFieldValue(profileType, "phone_$i", phone) ?: ""
+        )
+
+        // Phones
+        val phones = contact?.getSafePhones() ?: emptyList()
+        if (phones.isNotEmpty()) {
+            phones.forEachIndexed { i, phone ->
+                val eff = safeSettings.getEffectiveFieldValue(profileType, "phone_$i", phone) ?: ""
+                list.add(
+                    ProfileFieldItem(
+                        id = "phone_$i",
+                        iconRes = R.drawable.rounded_call_log_24,
+                        title = eff.ifBlank { context.getString(R.string.feat_medrop_field_phone) },
+                        subtitle = if (phones.size > 1) "${context.getString(R.string.feat_medrop_field_phone)} ${i + 1}" else context.getString(R.string.feat_medrop_field_phone),
+                        inputType = FieldInputType.PHONE,
+                        defaultValue = phone,
+                    )
+                )
+            }
+        } else {
+            val eff = safeSettings.getEffectiveFieldValue(profileType, "phone_0", "") ?: ""
             list.add(
                 ProfileFieldItem(
-                    id = "phone_$i",
+                    id = "phone_0",
                     iconRes = R.drawable.rounded_call_log_24,
-                    title = eff,
+                    title = eff.ifBlank { context.getString(R.string.feat_medrop_field_phone) },
                     subtitle = context.getString(R.string.feat_medrop_field_phone),
                     inputType = FieldInputType.PHONE,
-                    defaultValue = phone,
+                    defaultValue = null,
                 )
             )
         }
-        contact.getSafeEmails().forEachIndexed { i, email ->
-            val eff = safeSettings.getEffectiveFieldValue(profileType, "email_$i", email) ?: ""
+
+        // Emails
+        val emails = contact?.getSafeEmails() ?: emptyList()
+        if (emails.isNotEmpty()) {
+            emails.forEachIndexed { i, email ->
+                val eff = safeSettings.getEffectiveFieldValue(profileType, "email_$i", email) ?: ""
+                list.add(
+                    ProfileFieldItem(
+                        id = "email_$i",
+                        iconRes = R.drawable.rounded_mail_24,
+                        title = eff.ifBlank { context.getString(R.string.feat_medrop_field_email) },
+                        subtitle = if (emails.size > 1) "${context.getString(R.string.feat_medrop_field_email)} ${i + 1}" else context.getString(R.string.feat_medrop_field_email),
+                        inputType = FieldInputType.EMAIL,
+                        defaultValue = email,
+                    )
+                )
+            }
+        } else {
+            val eff = safeSettings.getEffectiveFieldValue(profileType, "email_0", "") ?: ""
             list.add(
                 ProfileFieldItem(
-                    id = "email_$i",
+                    id = "email_0",
                     iconRes = R.drawable.rounded_mail_24,
-                    title = eff,
+                    title = eff.ifBlank { context.getString(R.string.feat_medrop_field_email) },
                     subtitle = context.getString(R.string.feat_medrop_field_email),
                     inputType = FieldInputType.EMAIL,
-                    defaultValue = email,
+                    defaultValue = null,
                 )
             )
         }
-        if (!contact.organization.isNullOrBlank()) {
-            val eff = safeSettings.getEffectiveFieldValue(profileType, "organization", contact.organization) ?: ""
-            list.add(
-                ProfileFieldItem(
-                    id = "organization",
-                    iconRes = R.drawable.rounded_work_24,
-                    title = eff,
-                    subtitle = context.getString(R.string.feat_medrop_field_organization),
-                    inputType = FieldInputType.TEXT,
-                    defaultValue = contact.organization,
-                )
+
+        // Organization
+        val effOrg = safeSettings.getEffectiveFieldValue(profileType, "organization", contact?.organization) ?: ""
+        list.add(
+            ProfileFieldItem(
+                id = "organization",
+                iconRes = R.drawable.rounded_work_24,
+                title = effOrg.ifBlank { context.getString(R.string.feat_medrop_field_organization) },
+                subtitle = context.getString(R.string.feat_medrop_field_organization),
+                inputType = FieldInputType.TEXT,
+                defaultValue = contact?.organization,
             )
-        }
-        if (!contact.department.isNullOrBlank()) {
-            val eff = safeSettings.getEffectiveFieldValue(profileType, "department", contact.department) ?: ""
-            list.add(
-                ProfileFieldItem(
-                    id = "department",
-                    iconRes = R.drawable.rounded_work_24,
-                    title = eff,
-                    subtitle = context.getString(R.string.feat_medrop_field_department),
-                    inputType = FieldInputType.TEXT,
-                    defaultValue = contact.department,
-                )
+        )
+
+        // Department
+        val effDept = safeSettings.getEffectiveFieldValue(profileType, "department", contact?.department) ?: ""
+        list.add(
+            ProfileFieldItem(
+                id = "department",
+                iconRes = R.drawable.rounded_work_24,
+                title = effDept.ifBlank { context.getString(R.string.feat_medrop_field_department) },
+                subtitle = context.getString(R.string.feat_medrop_field_department),
+                inputType = FieldInputType.TEXT,
+                defaultValue = contact?.department,
             )
-        }
-        if (!contact.jobTitle.isNullOrBlank()) {
-            val eff = safeSettings.getEffectiveFieldValue(profileType, "jobTitle", contact.jobTitle) ?: ""
-            list.add(
-                ProfileFieldItem(
-                    id = "jobTitle",
-                    iconRes = R.drawable.rounded_work_24,
-                    title = eff,
-                    subtitle = context.getString(R.string.feat_medrop_field_job_title),
-                    inputType = FieldInputType.TEXT,
-                    defaultValue = contact.jobTitle,
-                )
+        )
+
+        // Job Title
+        val effTitle = safeSettings.getEffectiveFieldValue(profileType, "jobTitle", contact?.jobTitle) ?: ""
+        list.add(
+            ProfileFieldItem(
+                id = "jobTitle",
+                iconRes = R.drawable.rounded_work_24,
+                title = effTitle.ifBlank { context.getString(R.string.feat_medrop_field_job_title) },
+                subtitle = context.getString(R.string.feat_medrop_field_job_title),
+                inputType = FieldInputType.TEXT,
+                defaultValue = contact?.jobTitle,
             )
-        }
-        if (!contact.role.isNullOrBlank()) {
-            val eff = safeSettings.getEffectiveFieldValue(profileType, "role", contact.role) ?: ""
-            list.add(
-                ProfileFieldItem(
-                    id = "role",
-                    iconRes = R.drawable.rounded_work_24,
-                    title = eff,
-                    subtitle = context.getString(R.string.feat_medrop_field_role),
-                    inputType = FieldInputType.TEXT,
-                    defaultValue = contact.role,
-                )
+        )
+
+        // Role
+        val effRole = safeSettings.getEffectiveFieldValue(profileType, "role", contact?.role) ?: ""
+        list.add(
+            ProfileFieldItem(
+                id = "role",
+                iconRes = R.drawable.rounded_work_24,
+                title = effRole.ifBlank { context.getString(R.string.feat_medrop_field_role) },
+                subtitle = context.getString(R.string.feat_medrop_field_role),
+                inputType = FieldInputType.TEXT,
+                defaultValue = contact?.role,
             )
-        }
-        contact.getSafeAddresses().forEachIndexed { i, addr ->
-            val addrType = contact.getSafeAddressTypes().getOrNull(i)
-            val tag = if (addrType == 2) context.getString(R.string.feat_medrop_address_work) else context.getString(R.string.feat_medrop_address_home)
-            val eff = safeSettings.getEffectiveFieldValue(profileType, "address_$i", addr) ?: ""
+        )
+
+        // Addresses
+        val addrs = contact?.getSafeAddresses() ?: emptyList()
+        if (addrs.isNotEmpty()) {
+            addrs.forEachIndexed { i, addr ->
+                val addrType = contact?.getSafeAddressTypes()?.getOrNull(i)
+                val tag = if (addrType == 2) context.getString(R.string.feat_medrop_address_work) else context.getString(R.string.feat_medrop_address_home)
+                val eff = safeSettings.getEffectiveFieldValue(profileType, "address_$i", addr) ?: ""
+                list.add(
+                    ProfileFieldItem(
+                        id = "address_$i",
+                        iconRes = R.drawable.rounded_location_on_24,
+                        title = eff.replace("\n", ", ").ifBlank { context.getString(R.string.feat_medrop_field_address) },
+                        subtitle = tag,
+                        inputType = FieldInputType.MULTILINE,
+                        defaultValue = addr,
+                    )
+                )
+            }
+        } else {
+            val eff = safeSettings.getEffectiveFieldValue(profileType, "address_0", "") ?: ""
             list.add(
                 ProfileFieldItem(
-                    id = "address_$i",
+                    id = "address_0",
                     iconRes = R.drawable.rounded_location_on_24,
-                    title = eff.replace("\n", ", "),
-                    subtitle = tag,
+                    title = eff.replace("\n", ", ").ifBlank { context.getString(R.string.feat_medrop_field_address) },
+                    subtitle = context.getString(R.string.feat_medrop_field_address),
                     inputType = FieldInputType.MULTILINE,
-                    defaultValue = addr,
+                    defaultValue = null,
                 )
             )
         }
-        contact.getSafeUrls().forEachIndexed { i, url ->
-            val eff = safeSettings.getEffectiveFieldValue(profileType, "url_$i", url) ?: ""
+
+        // URLs
+        val urls = contact?.getSafeUrls() ?: emptyList()
+        if (urls.isNotEmpty()) {
+            urls.forEachIndexed { i, url ->
+                val eff = safeSettings.getEffectiveFieldValue(profileType, "url_$i", url) ?: ""
+                list.add(
+                    ProfileFieldItem(
+                        id = "url_$i",
+                        iconRes = R.drawable.rounded_globe_24,
+                        title = eff.ifBlank { context.getString(R.string.feat_medrop_field_url) },
+                        subtitle = if (urls.size > 1) "${context.getString(R.string.feat_medrop_field_url)} ${i + 1}" else context.getString(R.string.feat_medrop_field_url),
+                        inputType = FieldInputType.URL,
+                        defaultValue = url,
+                    )
+                )
+            }
+        } else {
+            val eff = safeSettings.getEffectiveFieldValue(profileType, "url_0", "") ?: ""
             list.add(
                 ProfileFieldItem(
-                    id = "url_$i",
+                    id = "url_0",
                     iconRes = R.drawable.rounded_globe_24,
-                    title = eff,
+                    title = eff.ifBlank { context.getString(R.string.feat_medrop_field_url) },
                     subtitle = context.getString(R.string.feat_medrop_field_url),
                     inputType = FieldInputType.URL,
-                    defaultValue = url,
+                    defaultValue = null,
                 )
             )
         }
-        if (!contact.note.isNullOrBlank()) {
-            val eff = safeSettings.getEffectiveFieldValue(profileType, "note", contact.note) ?: ""
-            list.add(
-                ProfileFieldItem(
-                    id = "note",
-                    iconRes = R.drawable.rounded_info_24,
-                    title = eff,
-                    subtitle = context.getString(R.string.feat_medrop_field_note),
-                    inputType = FieldInputType.MULTILINE,
-                    defaultValue = contact.note,
-                )
+
+        // Note
+        val effNote = safeSettings.getEffectiveFieldValue(profileType, "note", contact?.note) ?: ""
+        list.add(
+            ProfileFieldItem(
+                id = "note",
+                iconRes = R.drawable.rounded_info_24,
+                title = effNote.ifBlank { context.getString(R.string.feat_medrop_field_note) },
+                subtitle = context.getString(R.string.feat_medrop_field_note),
+                inputType = FieldInputType.MULTILINE,
+                defaultValue = contact?.note,
             )
-        }
+        )
+
         list
     }
 

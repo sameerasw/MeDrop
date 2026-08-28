@@ -450,18 +450,23 @@ fun MeDropBottomSheet(
                             .animateContentSize(animationSpec = tween(300, easing = LinearOutSlowInEasing)),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        val showOrg = safeSettings.isEntrySelected(activeProfileType, "organization") && !contact.organization.isNullOrBlank()
-                        val showDept = safeSettings.isEntrySelected(activeProfileType, "department") && !contact.department.isNullOrBlank()
-                        val showTitle = safeSettings.isEntrySelected(activeProfileType, "jobTitle") && !contact.jobTitle.isNullOrBlank()
-                        val showRole = safeSettings.isEntrySelected(activeProfileType, "role") && !contact.role.isNullOrBlank()
+                        val effOrg = safeSettings.getEffectiveFieldValue(activeProfileType, "organization", contact.organization)
+                        val effDept = safeSettings.getEffectiveFieldValue(activeProfileType, "department", contact.department)
+                        val effTitle = safeSettings.getEffectiveFieldValue(activeProfileType, "jobTitle", contact.jobTitle)
+                        val effRole = safeSettings.getEffectiveFieldValue(activeProfileType, "role", contact.role)
+
+                        val showOrg = safeSettings.isEntrySelected(activeProfileType, "organization") && !effOrg.isNullOrBlank()
+                        val showDept = safeSettings.isEntrySelected(activeProfileType, "department") && !effDept.isNullOrBlank()
+                        val showTitle = safeSettings.isEntrySelected(activeProfileType, "jobTitle") && !effTitle.isNullOrBlank()
+                        val showRole = safeSettings.isEntrySelected(activeProfileType, "role") && !effRole.isNullOrBlank()
                         if (showOrg || showDept || showTitle || showRole) {
                             val roleOrTitle = listOfNotNull(
-                                if (showTitle) contact.jobTitle else null,
-                                if (showRole) contact.role else null
+                                if (showTitle) effTitle else null,
+                                if (showRole) effRole else null
                             ).filter { it.isNotBlank() }.joinToString(", ")
                             val orgOrDept = listOfNotNull(
-                                if (showOrg) contact.organization else null,
-                                if (showDept) contact.department else null
+                                if (showOrg) effOrg else null,
+                                if (showDept) effDept else null
                             ).filter { it.isNotBlank() }.joinToString(" - ")
                             val orgText = listOfNotNull(
                                 roleOrTitle.ifBlank { null },
@@ -486,7 +491,8 @@ fun MeDropBottomSheet(
                         }
 
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            if (safeSettings.isEntrySelected(activeProfileType, "birthday") && !contact.birthday.isNullOrBlank()) {
+                            val effBirthday = safeSettings.getEffectiveFieldValue(activeProfileType, "birthday", contact.birthday)
+                            if (safeSettings.isEntrySelected(activeProfileType, "birthday") && !effBirthday.isNullOrBlank()) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
                                         painter = painterResource(R.drawable.rounded_calendar_today_24),
@@ -496,15 +502,17 @@ fun MeDropBottomSheet(
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = contact.birthday,
+                                        text = effBirthday,
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
 
-                            contact.getSafePhones().forEachIndexed { i, phone ->
-                                if (safeSettings.isEntrySelected(activeProfileType, "phone_$i")) {
+                            val phones = contact.getSafePhones().ifEmpty { listOf("") }
+                            phones.forEachIndexed { i, phone ->
+                                val effPhone = safeSettings.getEffectiveFieldValue(activeProfileType, "phone_$i", phone)
+                                if (safeSettings.isEntrySelected(activeProfileType, "phone_$i") && !effPhone.isNullOrBlank()) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
                                             painter = painterResource(R.drawable.rounded_call_log_24),
@@ -514,7 +522,7 @@ fun MeDropBottomSheet(
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            text = phone,
+                                            text = effPhone,
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -522,8 +530,10 @@ fun MeDropBottomSheet(
                                 }
                             }
 
-                            contact.getSafeEmails().forEachIndexed { i, email ->
-                                if (safeSettings.isEntrySelected(activeProfileType, "email_$i")) {
+                            val emails = contact.getSafeEmails().ifEmpty { listOf("") }
+                            emails.forEachIndexed { i, email ->
+                                val effEmail = safeSettings.getEffectiveFieldValue(activeProfileType, "email_$i", email)
+                                if (safeSettings.isEntrySelected(activeProfileType, "email_$i") && !effEmail.isNullOrBlank()) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
                                             painter = painterResource(R.drawable.rounded_mail_24),
@@ -533,7 +543,7 @@ fun MeDropBottomSheet(
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            text = email,
+                                            text = effEmail,
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -541,8 +551,10 @@ fun MeDropBottomSheet(
                                 }
                             }
 
-                            contact.getSafeAddresses().forEachIndexed { i, addr ->
-                                if (safeSettings.isEntrySelected(activeProfileType, "address_$i")) {
+                            val addrs = contact.getSafeAddresses().ifEmpty { listOf("") }
+                            addrs.forEachIndexed { i, addr ->
+                                val effAddr = safeSettings.getEffectiveFieldValue(activeProfileType, "address_$i", addr)
+                                if (safeSettings.isEntrySelected(activeProfileType, "address_$i") && !effAddr.isNullOrBlank()) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
                                             painter = painterResource(R.drawable.rounded_location_on_24),
@@ -552,7 +564,7 @@ fun MeDropBottomSheet(
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            text = addr.replace("\n", ", "),
+                                            text = effAddr.replace("\n", ", "),
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -560,8 +572,10 @@ fun MeDropBottomSheet(
                                 }
                             }
 
-                            contact.getSafeUrls().forEachIndexed { i, url ->
-                                if (safeSettings.isEntrySelected(activeProfileType, "url_$i")) {
+                            val urls = contact.getSafeUrls().ifEmpty { listOf("") }
+                            urls.forEachIndexed { i, url ->
+                                val effUrl = safeSettings.getEffectiveFieldValue(activeProfileType, "url_$i", url)
+                                if (safeSettings.isEntrySelected(activeProfileType, "url_$i") && !effUrl.isNullOrBlank()) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
                                             painter = painterResource(R.drawable.rounded_globe_24),
@@ -571,7 +585,7 @@ fun MeDropBottomSheet(
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            text = url,
+                                            text = effUrl,
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -579,7 +593,8 @@ fun MeDropBottomSheet(
                                 }
                             }
 
-                            if (safeSettings.isEntrySelected(activeProfileType, "note") && !contact.note.isNullOrBlank()) {
+                            val effNote = safeSettings.getEffectiveFieldValue(activeProfileType, "note", contact.note)
+                            if (safeSettings.isEntrySelected(activeProfileType, "note") && !effNote.isNullOrBlank()) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
                                         painter = painterResource(R.drawable.rounded_info_24),
@@ -589,7 +604,7 @@ fun MeDropBottomSheet(
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = contact.note,
+                                        text = effNote,
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
