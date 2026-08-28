@@ -7,7 +7,12 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
@@ -484,13 +489,13 @@ private fun ProfileFieldsManager(
         list
     }
 
-    val visibleFields = allFields.filter { settings.isEntrySelected(type, it.id) }
-    val hiddenFields = allFields.filter { !settings.isEntrySelected(type, it.id) }
+    val visibleCount = allFields.count { settings.isEntrySelected(type, it.id) }
+    val hiddenCount = allFields.size - visibleCount
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .animateContentSize(animationSpec = tween(300, easing = LinearOutSlowInEasing)),
+            .animateContentSize(animationSpec = spring(stiffness = 500f)),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         // Visible Fields Section
@@ -507,17 +512,18 @@ private fun ProfileFieldsManager(
                 .padding(start = 8.dp, top = 8.dp),
         )
 
-        if (visibleFields.isEmpty()) {
-            RoundedCardContainer {
-                IconToggleItem(
-                    iconRes = R.drawable.rounded_info_24,
-                    title = stringResource(R.string.feat_medrop_no_visible_fields),
-                    showToggle = false,
-                )
-            }
-        } else {
-            RoundedCardContainer {
-                visibleFields.forEach { item ->
+        RoundedCardContainer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .animateContentSize(animationSpec = spring(stiffness = 500f))
+        ) {
+            allFields.forEach { item ->
+                val isVisible = settings.isEntrySelected(type, item.id)
+                AnimatedVisibility(
+                    visible = isVisible,
+                    enter = fadeIn(animationSpec = tween(250)) + expandVertically(animationSpec = spring(stiffness = 500f)),
+                    exit = fadeOut(animationSpec = tween(200)) + shrinkVertically(animationSpec = spring(stiffness = 500f)),
+                ) {
                     IconToggleItem(
                         iconRes = item.iconRes,
                         title = item.title,
@@ -542,12 +548,26 @@ private fun ProfileFieldsManager(
                     )
                 }
             }
+
+            if (visibleCount == 0) {
+                IconToggleItem(
+                    iconRes = R.drawable.rounded_info_24,
+                    title = stringResource(R.string.feat_medrop_no_visible_fields),
+                    showToggle = false,
+                )
+            }
         }
 
         // Hidden Fields Section (in Edit mode)
-        AnimatedVisibility(visible = isEditMode && hiddenFields.isNotEmpty()) {
+        AnimatedVisibility(
+            visible = isEditMode,
+            enter = fadeIn(animationSpec = tween(300)) + expandVertically(animationSpec = spring(stiffness = 500f)),
+            exit = fadeOut(animationSpec = tween(250)) + shrinkVertically(animationSpec = spring(stiffness = 500f)),
+        ) {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .animateContentSize(animationSpec = spring(stiffness = 500f)),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
@@ -559,26 +579,37 @@ private fun ProfileFieldsManager(
                         .padding(start = 8.dp, top = 8.dp),
                 )
 
-                RoundedCardContainer {
-                    hiddenFields.forEach { item ->
-                        IconToggleItem(
-                            iconRes = item.iconRes,
-                            title = item.title,
-                            subtitle = item.subtitle,
-                            showToggle = false,
-                            onClick = {
-                                HapticUtil.performVirtualKeyHaptic(view)
-                                viewModel.toggleMeDropProfileEntry(context, type, item.id, true)
-                            },
-                            trailingIcon = {
-                                Icon(
-                                    painter = painterResource(R.drawable.rounded_add_24),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            },
-                        )
+                RoundedCardContainer(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateContentSize(animationSpec = spring(stiffness = 500f))
+                ) {
+                    allFields.forEach { item ->
+                        val isHidden = !settings.isEntrySelected(type, item.id)
+                        AnimatedVisibility(
+                            visible = isHidden,
+                            enter = fadeIn(animationSpec = tween(250)) + expandVertically(animationSpec = spring(stiffness = 500f)),
+                            exit = fadeOut(animationSpec = tween(200)) + shrinkVertically(animationSpec = spring(stiffness = 500f)),
+                        ) {
+                            IconToggleItem(
+                                iconRes = item.iconRes,
+                                title = item.title,
+                                subtitle = item.subtitle,
+                                showToggle = false,
+                                onClick = {
+                                    HapticUtil.performVirtualKeyHaptic(view)
+                                    viewModel.toggleMeDropProfileEntry(context, type, item.id, true)
+                                },
+                                trailingIcon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.rounded_add_24),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -590,6 +621,8 @@ private fun ProfileFieldsManager(
             onToggle = onToggleEditMode,
             expandedText = stringResource(R.string.feat_medrop_save_visibility),
             collapsedText = stringResource(R.string.feat_medrop_edit_visibility),
+            collapsedIconRes = R.drawable.rounded_edit_24,
+            expandedIconRes = R.drawable.rounded_check_24,
         )
     }
 }

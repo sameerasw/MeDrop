@@ -31,6 +31,8 @@ fun ListExpandToggleButton(
     modifier: Modifier = Modifier,
     expandedText: String = "",
     collapsedText: String = "",
+    expandedIconRes: Int? = null,
+    collapsedIconRes: Int? = null,
     iconRes: Int? = null,
 ) {
     val view = LocalView.current
@@ -39,6 +41,15 @@ fun ListExpandToggleButton(
         targetValue = if (isExpanded) 180f else 0f,
         label = "list_expand_chevron_rotation",
     )
+
+    val currentIconRes = when {
+        isExpanded && expandedIconRes != null -> expandedIconRes
+        !isExpanded && collapsedIconRes != null -> collapsedIconRes
+        iconRes != null -> iconRes
+        else -> R.drawable.rounded_keyboard_arrow_down_24
+    }
+
+    val shouldRotate = iconRes == null && expandedIconRes == null && collapsedIconRes == null
 
     Box(
         modifier = modifier.fillMaxWidth(),
@@ -57,17 +68,14 @@ fun ListExpandToggleButton(
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 14.dp),
         ) {
             Icon(
-                painter =
-                    painterResource(
-                        id = iconRes ?: R.drawable.rounded_keyboard_arrow_down_24,
-                    ),
+                painter = painterResource(id = currentIconRes),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier =
                     Modifier
                         .size(22.dp)
                         .then(
-                            if (iconRes == null) {
+                            if (shouldRotate) {
                                 Modifier.graphicsLayer { rotationZ = rotationDegree }
                             } else {
                                 Modifier
