@@ -182,14 +182,14 @@ fun MeDropHeaderUI(
     val textAlpha = entranceProgress.coerceIn(0f, 1f)
 
     val minHeaderHeight = 200.dp
-    val maxHeaderHeight = screenWidthDp.coerceAtLeast(300.dp)
-    val expansionFraction = if (maxHeaderHeight > minHeaderHeight) {
-        ((headerHeight - minHeaderHeight) / (maxHeaderHeight - minHeaderHeight)).coerceIn(0f, 1f)
+    val maxAllowedHeight = minOf(screenWidthDp, screenHeightDp * 0.6f).coerceAtLeast(minHeaderHeight)
+    val expansionFraction = if (maxAllowedHeight > minHeaderHeight) {
+        ((headerHeight - minHeaderHeight) / (maxAllowedHeight - minHeaderHeight)).coerceIn(0f, 1f)
     } else 0f
 
-    // Morph to square only in the final 99%+ threshold
-    val morphToSquareFraction = if (expansionFraction > 0.98f) {
-        ((expansionFraction - 0.98f) / 0.02f).coerceIn(0f, 1f)
+    // Morph to square in the final 85%+ threshold
+    val morphToSquareFraction = if (expansionFraction > 0.85f) {
+        ((expansionFraction - 0.85f) / 0.15f).coerceIn(0f, 1f)
     } else {
         0f
     }
@@ -232,7 +232,8 @@ fun MeDropHeaderUI(
     }
 
     val normalAvatarSize = minHeaderHeight - 16.dp
-    val currentWidth = normalAvatarSize + (screenWidthDp - normalAvatarSize) * expansionFraction
+    val targetExpandedWidth = screenWidthDp
+    val currentWidth = normalAvatarSize + (targetExpandedWidth - normalAvatarSize) * expansionFraction
     val currentHeight = headerHeight
     val horizontalPadding = (16.dp * (1f - expansionFraction)).coerceAtLeast(0.dp)
 

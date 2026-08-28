@@ -166,8 +166,9 @@ class MainActivity : AppCompatActivity() {
             val density = LocalDensity.current
             val configuration = androidx.compose.ui.platform.LocalConfiguration.current
             val screenWidth = configuration.screenWidthDp.dp
+            val screenHeight = configuration.screenHeightDp.dp
             val minHeaderHeight = 200.dp
-            val maxHeaderHeight = screenWidth.coerceAtLeast(300.dp)
+            val maxHeaderHeight = minOf(screenWidth, screenHeight * 0.6f).coerceAtLeast(minHeaderHeight)
             var headerHeight by remember { mutableStateOf(minHeaderHeight) }
 
             val view = LocalView.current
