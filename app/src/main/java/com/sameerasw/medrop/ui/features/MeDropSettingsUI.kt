@@ -23,12 +23,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -52,6 +55,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asComposePath
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -102,6 +106,7 @@ fun MeDropHeaderUI(
     headerHeight: Dp = 200.dp,
     activeProfileType: MeDropProfileType = MeDropProfileType.CONTACT,
     onPickContactClick: () -> Unit = {},
+    entranceProgress: Float = 1f,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -135,16 +140,26 @@ fun MeDropHeaderUI(
         MeDropProfileType.CUSTOM -> MaterialShapes.Cookie4Sided
     }
 
-    val previousPolygon = remember { mutableStateOf(targetPolygon) }
+    val initialPolygon = MaterialShapes.Circle
+    val previousPolygon = remember { mutableStateOf(initialPolygon) }
     val currentPolygon = remember { mutableStateOf(targetPolygon) }
-    val morphProgress = remember { Animatable(1f) }
+    val morphProgress = remember { Animatable(0f) }
 
     LaunchedEffect(targetPolygon) {
         if (targetPolygon != currentPolygon.value) {
             previousPolygon.value = currentPolygon.value
             currentPolygon.value = targetPolygon
             morphProgress.snapTo(0f)
-            morphProgress.animateTo(1f, animationSpec = tween(400, easing = LinearOutSlowInEasing))
+            morphProgress.animateTo(1f, animationSpec = tween(500, easing = LinearOutSlowInEasing))
+        } else if (morphProgress.value < 1f) {
+            kotlinx.coroutines.delay(250)
+            morphProgress.animateTo(
+                1f,
+                animationSpec = tween(
+                    durationMillis = 1200,
+                    easing = androidx.compose.animation.core.CubicBezierEasing(0.2f, 0.0f, 0f, 1.0f)
+                )
+            )
         }
     }
 
@@ -169,12 +184,23 @@ fun MeDropHeaderUI(
         }
     }
 
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val screenHeightDp = configuration.screenHeightDp.dp
+    val statusBarTop = androidx.compose.foundation.layout.WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val headerCenterY = statusBarTop + 4.dp + 8.dp + ((headerHeight - 16.dp) / 2f)
+    val globalEntranceOffsetY = with(density) { ((screenHeightDp / 2f) - headerCenterY).toPx() }
+    val currentGlobalOffsetY = (1f - entranceProgress) * globalEntranceOffsetY
+    val currentPhotoScale = 0.84f + (0.16f * entranceProgress)
+    val textAlpha = entranceProgress.coerceIn(0f, 1f)
+
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .offset { androidx.compose.ui.unit.IntOffset(0, currentGlobalOffsetY.toInt()) }
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(
             modifier = Modifier
@@ -186,6 +212,10 @@ fun MeDropHeaderUI(
             Box(
                 modifier = Modifier
                     .size(headerHeight - 16.dp)
+                    .graphicsLayer {
+                        scaleX = currentPhotoScale
+                        scaleY = currentPhotoScale
+                    }
                     .clip(animatedShape)
                     .clickable {
                         HapticUtil.performVirtualKeyHaptic(view)
@@ -234,7 +264,8 @@ fun MeDropHeaderUI(
             // Edit button at bottom-right of photo area
             Box(
                 modifier = Modifier
-                    .size(headerHeight - 16.dp),
+                    .size(headerHeight - 16.dp)
+                    .graphicsLayer { alpha = textAlpha },
                 contentAlignment = Alignment.BottomEnd,
             ) {
                 IconButton(
@@ -297,99 +328,106 @@ fun MeDropHeaderUI(
             }
         }
 
-        // Contact Header
-        if (contact != null) {
-            val displayName = safeSettings.getEffectiveDisplayName(activeProfileType)
-            val canEditName = activeProfileType != MeDropProfileType.CONTACT
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer { alpha = textAlpha },
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            if (contact != null) {
+                val displayName = safeSettings.getEffectiveDisplayName(activeProfileType)
+                val canEditName = activeProfileType != MeDropProfileType.CONTACT
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable(enabled = canEditName) {
-                        HapticUtil.performVirtualKeyHaptic(view)
-                        isEditingName = true
-                    }
-                    .padding(vertical = 4.dp, horizontal = 8.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = displayName,
-                    modifier = Modifier.basicMarquee(),
-                    style = MaterialTheme.typography.headlineLarge.copy(
-                        fontFamily = FontFamily(
-                            Font(
-                                R.font.google_sans_flex,
-                                variationSettings = FontVariation.Settings(
-                                    FontVariation.width(150f),
-                                    FontVariation.weight(FontWeight.Normal.weight),
-                                    FontVariation.Setting("ROND", 100f),
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(enabled = canEditName) {
+                            HapticUtil.performVirtualKeyHaptic(view)
+                            isEditingName = true
+                        }
+                        .padding(vertical = 4.dp, horizontal = 8.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = displayName,
+                        modifier = Modifier.basicMarquee(),
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontFamily = FontFamily(
+                                Font(
+                                    R.font.google_sans_flex,
+                                    variationSettings = FontVariation.Settings(
+                                        FontVariation.width(150f),
+                                        FontVariation.weight(FontWeight.Normal.weight),
+                                        FontVariation.Setting("ROND", 100f),
+                                    ),
                                 ),
                             ),
                         ),
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    textAlign = TextAlign.Center,
-                )
-            }
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        textAlign = TextAlign.Center,
+                    )
+                }
 
-            val hasAnySubName = !contact.nickname.isNullOrBlank() || !contact.pronouns.isNullOrBlank()
-            if (hasAnySubName) {
-                val effNickname = safeSettings.getEffectiveFieldValue(activeProfileType, "nickname", contact.nickname)
-                val effPronouns = safeSettings.getEffectiveFieldValue(activeProfileType, "pronouns", contact.pronouns)
-                val showNickname = safeSettings.isEntrySelected(activeProfileType, "nickname") && !effNickname.isNullOrBlank()
-                val showPronouns = safeSettings.isEntrySelected(activeProfileType, "pronouns") && !effPronouns.isNullOrBlank()
-                val subName = if (showNickname || showPronouns) {
-                    val nickPart = if (showNickname) "\"$effNickname\"" else null
-                    val pronounPart = if (showPronouns) "($effPronouns)" else null
-                    listOfNotNull(nickPart, pronounPart).joinToString(" ")
-                } else ""
+                val hasAnySubName = !contact.nickname.isNullOrBlank() || !contact.pronouns.isNullOrBlank()
+                if (hasAnySubName) {
+                    val effNickname = safeSettings.getEffectiveFieldValue(activeProfileType, "nickname", contact.nickname)
+                    val effPronouns = safeSettings.getEffectiveFieldValue(activeProfileType, "pronouns", contact.pronouns)
+                    val showNickname = safeSettings.isEntrySelected(activeProfileType, "nickname") && !effNickname.isNullOrBlank()
+                    val showPronouns = safeSettings.isEntrySelected(activeProfileType, "pronouns") && !effPronouns.isNullOrBlank()
+                    val subName = if (showNickname || showPronouns) {
+                        val nickPart = if (showNickname) "\"$effNickname\"" else null
+                        val pronounPart = if (showPronouns) "($effPronouns)" else null
+                        listOfNotNull(nickPart, pronounPart).joinToString(" ")
+                    } else ""
 
-                AnimatedContent(
-                    targetState = subName,
-                    transitionSpec = {
-                        fadeIn(animationSpec = tween(220)).togetherWith(fadeOut(animationSpec = tween(150)))
-                    },
-                    label = "subname_transition",
-                ) { targetSubName ->
-                    if (targetSubName.isNotBlank()) {
-                        Text(
-                            text = targetSubName,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.basicMarquee(),
-                        )
-                    } else {
-                        Spacer(modifier = Modifier.height(0.dp))
+                    AnimatedContent(
+                        targetState = subName,
+                        transitionSpec = {
+                            fadeIn(animationSpec = tween(220)).togetherWith(fadeOut(animationSpec = tween(150)))
+                        },
+                        label = "subname_transition",
+                    ) { targetSubName ->
+                        if (targetSubName.isNotBlank()) {
+                            Text(
+                                text = targetSubName,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.basicMarquee(),
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.height(0.dp))
+                        }
                     }
                 }
-            }
 
-            if (isEditingName) {
-                EditFieldBottomSheet(
-                    title = stringResource(R.string.feat_medrop_edit_name_title),
-                    initialValue = safeSettings.getProfile(activeProfileType).customDisplayName ?: contact.displayName,
-                    defaultValue = contact.displayName,
+                if (isEditingName) {
+                    EditFieldBottomSheet(
+                        title = stringResource(R.string.feat_medrop_edit_name_title),
+                        initialValue = safeSettings.getProfile(activeProfileType).customDisplayName ?: contact.displayName,
+                        defaultValue = contact.displayName,
+                        iconRes = R.drawable.rounded_contacts_product_24,
+                        inputType = FieldInputType.PERSON_NAME,
+                        onSave = { newName ->
+                            viewModel.updateMeDropProfileDisplayName(context, activeProfileType, newName)
+                        },
+                        onResetToDefault = {
+                            viewModel.updateMeDropProfileDisplayName(context, activeProfileType, null)
+                        },
+                        onDismissRequest = { isEditingName = false }
+                    )
+                }
+            } else {
+                FeatureCard(
+                    title = stringResource(R.string.feat_medrop_select_contact),
+                    description = stringResource(R.string.feat_medrop_no_contact_desc),
                     iconRes = R.drawable.rounded_contacts_product_24,
-                    inputType = FieldInputType.PERSON_NAME,
-                    onSave = { newName ->
-                        viewModel.updateMeDropProfileDisplayName(context, activeProfileType, newName)
-                    },
-                    onResetToDefault = {
-                        viewModel.updateMeDropProfileDisplayName(context, activeProfileType, null)
-                    },
-                    onDismissRequest = { isEditingName = false }
+                    onClick = onPickContactClick,
                 )
             }
-        } else {
-            FeatureCard(
-                title = stringResource(R.string.feat_medrop_select_contact),
-                description = stringResource(R.string.feat_medrop_no_contact_desc),
-                iconRes = R.drawable.rounded_contacts_product_24,
-                onClick = onPickContactClick,
-            )
         }
     }
 }

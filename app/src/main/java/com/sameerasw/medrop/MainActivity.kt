@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.pager.HorizontalPager
@@ -41,7 +42,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -49,6 +52,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -56,6 +60,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.gson.Gson
+import com.sameerasw.medrop.data.repository.MeDropRepository
 import com.sameerasw.medrop.domain.model.MeDropProfileType
 import com.sameerasw.medrop.domain.model.MeDropSettings
 import com.sameerasw.medrop.ui.activities.SettingsActivity
@@ -98,42 +104,16 @@ class MainActivity : AppCompatActivity() {
         splashScreen.setOnExitAnimationListener { splashScreenViewProvider ->
             try {
                 val splashScreenView = splashScreenViewProvider.view
-                val splashIcon =
-                    try {
-                        splashScreenViewProvider.iconView
-                    } catch (e: Exception) {
-                        null
-                    }
-
                 val fadeOut =
                     android.animation.ObjectAnimator.ofFloat(splashScreenView, "alpha", 1f, 0f).apply {
-                        interpolator = android.view.animation.AnticipateInterpolator()
-                        duration = 750
+                        interpolator = androidx.interpolator.view.animation.FastOutSlowInInterpolator()
+                        duration = 400
                     }
                 fadeOut.addListener(object : android.animation.AnimatorListenerAdapter() {
                     override fun onAnimationEnd(animation: android.animation.Animator) {
                         splashScreenViewProvider.remove()
                     }
                 })
-
-                if (splashIcon != null) {
-                    val scaleX = android.animation.ObjectAnimator.ofFloat(splashIcon, "scaleX", 1f, 0.5f).apply {
-                        interpolator = android.view.animation.AnticipateInterpolator()
-                        duration = 750
-                    }
-                    val scaleY = android.animation.ObjectAnimator.ofFloat(splashIcon, "scaleY", 1f, 0.5f).apply {
-                        interpolator = android.view.animation.AnticipateInterpolator()
-                        duration = 750
-                    }
-                    val rotate = android.animation.ObjectAnimator.ofFloat(splashIcon, "rotation", 0f, -90f).apply {
-                        interpolator = android.view.animation.AnticipateInterpolator()
-                        duration = 750
-                    }
-                    scaleX.start()
-                    scaleY.start()
-                    rotate.start()
-                }
-
                 fadeOut.start()
             } catch (e: Exception) {
                 splashScreenViewProvider.remove()
@@ -170,6 +150,18 @@ class MainActivity : AppCompatActivity() {
             val hasContactsPerm by viewModel.hasContactsPermission
             val settings by viewModel.meDropSettings
             val safeSettings = settings ?: MeDropSettings()
+
+            val entranceProgress = remember { androidx.compose.animation.core.Animatable(0f) }
+            LaunchedEffect(Unit) {
+                kotlinx.coroutines.delay(250)
+                entranceProgress.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(
+                        durationMillis = 1200,
+                        easing = androidx.compose.animation.core.CubicBezierEasing(0.2f, 0.0f, 0f, 1.0f)
+                    )
+                )
+            }
 
             val density = LocalDensity.current
             val minHeaderHeight = 200.dp
@@ -374,14 +366,21 @@ class MainActivity : AppCompatActivity() {
                                 headerHeight = headerHeight,
                                 activeProfileType = activeProfileType,
                                 onPickContactClick = onPickContactClick,
+                                entranceProgress = entranceProgress.value,
                                 modifier = Modifier.padding(top = 4.dp),
                             )
 
-                            // Swipeable Fields Area per Tab
+                            val contentOffsetY = with(density) { (1f - entranceProgress.value) * 300.dp.toPx() }
+                            val contentAlpha = entranceProgress.value.coerceIn(0f, 1f)
+
+                            // Swipeable Fields Area per Tab (smoothly slides up from bottom)
                             if (safeSettings.contact != null) {
                                 HorizontalPager(
                                     state = pagerState,
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .offset { androidx.compose.ui.unit.IntOffset(0, contentOffsetY.toInt()) }
+                                        .graphicsLayer { alpha = contentAlpha },
                                     verticalAlignment = Alignment.Top,
                                 ) { page ->
                                     val currentProfileType = enabledTabs.getOrNull(page) ?: MeDropProfileType.CONTACT
@@ -402,6 +401,7 @@ class MainActivity : AppCompatActivity() {
                             )
                         }
 
+                        val toolbarOffsetY = with(density) { (1f - entranceProgress.value) * 150.dp.toPx() }
                         MeDropFloatingToolbar(
                             items = toolbarItems,
                             selectedIndex = pagerState.currentPage.coerceIn(0, toolbarItems.size - 1),
@@ -415,6 +415,8 @@ class MainActivity : AppCompatActivity() {
                             modifier =
                                 Modifier
                                     .align(Alignment.BottomCenter)
+                                    .offset { androidx.compose.ui.unit.IntOffset(0, toolbarOffsetY.toInt()) }
+                                    .graphicsLayer { alpha = entranceProgress.value }
                                     .zIndex(1f),
                         )
                     }
