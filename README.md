@@ -8,3 +8,5 @@ Features:
  · Easy to use app
 
 App: Not done yet 😅
+
+Feel free to check out the original app!  https://github.com/sameerasw/MeDrop
