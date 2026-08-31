@@ -7,6 +7,6 @@ Features:
  · NFC and QR code sharing
  · Easy to use app
 
-App: Not done yet 😅
+App: in the releases tab, then in the "Fixes-for-MeDrop"
 
 Feel free to check out the original app!  https://github.com/sameerasw/MeDrop
