@@ -251,22 +251,18 @@ fun MeDropBottomSheet(
         if (isQrModeActive && contact != null) {
             withContext(Dispatchers.IO) {
                 val profile = safeSettings.getProfile(activeProfileType)
-                val qrEntryIds = safeSettings.getEffectiveEntryIds(activeProfileType).toMutableSet().apply {
-                    remove("photo") // Photos are too large for QR codes and make the grid too dense
-                }
                 val vcardString = contact.toVCard(
                     context = context,
-                    activeEntryIds = qrEntryIds,
+                    activeEntryIds = safeSettings.getEffectiveEntryIds(activeProfileType),
                     customPhotoUri = null,
                     customDisplayName = if (activeProfileType != MeDropProfileType.CONTACT) profile.customDisplayName else null,
-                    fieldOverrides = profile.customFieldOverrides,
-                    includeRev = false
+                    fieldOverrides = profile.customFieldOverrides
                 )
                 val generated = QrCodeGenerator.generateQrBitmap(
                     content = vcardString,
-                    size = 1024,
-                    foregroundColor = AndroidColor.WHITE,
-                    backgroundColor = AndroidColor.BLACK,
+                    size = 1000,
+                    foregroundColor = AndroidColor.BLACK,
+                    backgroundColor = AndroidColor.WHITE,
                     logo = null
                 )
                 withContext(Dispatchers.Main) {
@@ -343,7 +339,7 @@ fun MeDropBottomSheet(
 
                 val targetPhotoSize = if (isQrModeActive) 80.dp else (200.dp * scanScale)
                 val qrContainerSize by animateDpAsState(
-                    targetValue = if (isQrModeActive) 380.dp else targetPhotoSize,
+                    targetValue = if (isQrModeActive) 340.dp else targetPhotoSize,
                     animationSpec = androidx.compose.animation.core.spring(
                         dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
                         stiffness = androidx.compose.animation.core.Spring.StiffnessLow

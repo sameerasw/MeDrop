@@ -70,8 +70,7 @@ data class MeDropContact(
         activeEntryIds: Set<String>,
         customPhotoUri: String? = null,
         customDisplayName: String? = null,
-        fieldOverrides: Map<String, String> = emptyMap(),
-        includeRev: Boolean = true
+        fieldOverrides: Map<String, String> = emptyMap()
     ): String {
         val effectiveDisplayName = customDisplayName?.takeIf { it.isNotBlank() } ?: displayName
         val effectivePhotoUri = customPhotoUri ?: photoUri
@@ -111,7 +110,6 @@ data class MeDropContact(
                                     (height * ratio).toInt().coerceAtLeast(1),
                                     true
                                 )
-
                             } else {
                                 originalBitmap
                             }
@@ -191,10 +189,8 @@ data class MeDropContact(
             sb.appendLine("NOTE:${effNote.replace("\n", " ")}")
         }
 
-        if (includeRev) {
-            val rev = SimpleDateFormat("yyyyMMdd'T'HHmmss'Z'", Locale.US).format(Date())
-            sb.appendLine("REV:$rev")
-        }
+        val rev = SimpleDateFormat("yyyyMMdd'T'HHmmss'Z'", Locale.US).format(Date())
+        sb.appendLine("REV:$rev")
         sb.append("END:VCARD")
         return sb.toString()
     }
