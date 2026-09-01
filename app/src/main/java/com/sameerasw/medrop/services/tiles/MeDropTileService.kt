@@ -13,8 +13,23 @@ import com.sameerasw.medrop.ui.activities.MeDropActivity
 
 class MeDropTileService : TileService() {
 
+    override fun onTileAdded() {
+        super.onTileAdded()
+        val repo = MeDropRepository(this)
+        repo.setTileAdded(true)
+        updateTile()
+    }
+
+    override fun onTileRemoved() {
+        super.onTileRemoved()
+        val repo = MeDropRepository(this)
+        repo.setTileAdded(false)
+    }
+
     override fun onStartListening() {
         super.onStartListening()
+        val repo = MeDropRepository(this)
+        repo.setTileAdded(true)
         updateTile()
     }
 

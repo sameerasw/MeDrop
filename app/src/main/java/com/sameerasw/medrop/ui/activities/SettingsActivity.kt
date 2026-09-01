@@ -198,6 +198,38 @@ class SettingsActivity : ComponentActivity() {
                                     ),
                             )
 
+                            // Quick Settings Tile Add Card
+                            val isTileAdded by viewModel.isTileAdded
+                            FeatureCard(
+                                title = stringResource(R.string.feat_medrop_add_tile_title),
+                                description = if (isTileAdded) {
+                                    stringResource(R.string.feat_medrop_tile_added)
+                                } else {
+                                    stringResource(R.string.feat_medrop_add_tile_desc)
+                                },
+                                iconRes = if (isTileAdded) R.drawable.rounded_check_24 else R.drawable.rounded_touch_app_24,
+                                onClick = {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                        try {
+                                            val statusBarManager = context.getSystemService(android.app.StatusBarManager::class.java)
+                                            val componentName = android.content.ComponentName(context, com.sameerasw.medrop.services.tiles.MeDropTileService::class.java)
+                                            statusBarManager.requestAddTileService(
+                                                componentName,
+                                                context.getString(R.string.feat_medrop_title),
+                                                android.graphics.drawable.Icon.createWithResource(context, R.drawable.rounded_contactless_24),
+                                                context.mainExecutor
+                                            ) { result ->
+                                                if (result == android.app.StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED ||
+                                                    result == android.app.StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED
+                                                ) {
+                                                    viewModel.setTileAdded(context, true)
+                                                }
+                                            }
+                                        } catch (_: Exception) {}
+                                    }
+                                },
+                            )
+
                             // Contact Source Card
                             FeatureCard(
                                 title = if (currentContact != null) {

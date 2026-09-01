@@ -494,10 +494,12 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         val toolbarOffsetY = with(density) { (1f - entranceProgress.value) * 150.dp.toPx() }
+                        val isTileAdded by viewModel.isTileAdded
                         MeDropFloatingToolbar(
                             items = toolbarItems,
                             selectedIndex = pagerState.currentPage.coerceIn(0, toolbarItems.size - 1),
                             fabIconRes = R.drawable.rounded_settings_24,
+                            fabHasBadge = !isTileAdded,
                             fabAction = {
                                 HapticUtil.performVirtualKeyHaptic(view)
                                 val intent = Intent(context, SettingsActivity::class.java)

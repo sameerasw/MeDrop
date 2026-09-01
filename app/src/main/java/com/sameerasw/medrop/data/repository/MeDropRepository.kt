@@ -37,6 +37,12 @@ class MeDropRepository(context: Context) {
         prefs.edit().putBoolean(KEY_DEVELOPER_MODE_ENABLED, enabled).apply()
     }
 
+    fun isTileAdded(): Boolean = prefs.getBoolean(KEY_TILE_ADDED, false)
+
+    fun setTileAdded(added: Boolean) {
+        prefs.edit().putBoolean(KEY_TILE_ADDED, added).apply()
+    }
+
     companion object {
         private const val PREFS_NAME = "medrop_preferences"
         const val KEY_MEDROP_SETTINGS_JSON = "medrop_settings_json"
@@ -44,5 +50,6 @@ class MeDropRepository(context: Context) {
         const val KEY_PITCH_BLACK_THEME = "pitch_black_theme"
         const val KEY_BLUR_ENABLED = "blur_enabled"
         const val KEY_DEVELOPER_MODE_ENABLED = "developer_mode_enabled"
+        const val KEY_TILE_ADDED = "tile_added"
     }
 }

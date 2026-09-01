@@ -18,6 +18,7 @@ class MeDropViewModel : ViewModel() {
     val isBlurEnabled = mutableStateOf(true)
     val isDeveloperModeEnabled = mutableStateOf(false)
     val hasContactsPermission = mutableStateOf(false)
+    val isTileAdded = mutableStateOf(false)
 
     fun check(context: Context) {
         val repo = MeDropRepository(context)
@@ -25,7 +26,31 @@ class MeDropViewModel : ViewModel() {
         isBlurEnabled.value = repo.isBlurEnabled()
         isDeveloperModeEnabled.value = repo.isDeveloperModeEnabled()
         hasContactsPermission.value = PermissionUtils.hasContactsPermission(context)
+        updateTileState(context)
         loadMeDropSettings(context)
+    }
+
+    fun updateTileState(context: Context) {
+        var added = false
+        try {
+            val tilesString = android.provider.Settings.Secure.getString(context.contentResolver, "sysui_qs_tiles") ?: ""
+            if (tilesString.contains("com.sameerasw.medrop/.services.tiles.MeDropTileService") ||
+                tilesString.contains("com.sameerasw.medrop")
+            ) {
+                added = true
+                MeDropRepository(context).setTileAdded(true)
+            }
+        } catch (_: Exception) {}
+
+        if (!added) {
+            added = MeDropRepository(context).isTileAdded()
+        }
+        isTileAdded.value = added
+    }
+
+    fun setTileAdded(context: Context, added: Boolean) {
+        MeDropRepository(context).setTileAdded(added)
+        isTileAdded.value = added
     }
 
     fun setPitchBlackTheme(context: Context, enabled: Boolean) {

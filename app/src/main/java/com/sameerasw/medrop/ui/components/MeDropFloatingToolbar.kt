@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -65,6 +66,7 @@ fun MeDropFloatingToolbar(
     fabAction: (() -> Unit)? = null,
     fabIconRes: Int? = null,
     fabContentDescription: String? = null,
+    fabHasBadge: Boolean = false,
     floatingActionButton: (@Composable () -> Unit)? = null,
     scrollBehavior: FloatingToolbarScrollBehavior? = null,
     expanded: Boolean = true,
@@ -84,40 +86,62 @@ fun MeDropFloatingToolbar(
             floatingActionButton != null -> floatingActionButton
             onHelpClick != null && fabAction == null -> {
                 {
-                    FloatingActionButton(
-                        onClick = {
-                            HapticUtil.performUIHaptic(view)
-                            onHelpClick()
-                        },
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        shape = MaterialTheme.shapes.large,
-                        elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp),
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.rounded_help_24),
-                            contentDescription = stringResource(R.string.action_help_guide),
-                        )
+                    Box {
+                        FloatingActionButton(
+                            onClick = {
+                                HapticUtil.performUIHaptic(view)
+                                onHelpClick()
+                            },
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            shape = MaterialTheme.shapes.large,
+                            elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp),
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.rounded_help_24),
+                                contentDescription = stringResource(R.string.action_help_guide),
+                            )
+                        }
+                        if (fabHasBadge) {
+                            androidx.compose.material3.Badge(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 4.dp, y = (-4).dp)
+                                    .size(10.dp),
+                                containerColor = MaterialTheme.colorScheme.error,
+                            )
+                        }
                     }
                 }
             }
 
             fabAction != null && fabIconRes != null -> {
                 {
-                    FloatingActionButton(
-                        onClick = {
-                            HapticUtil.performUIHaptic(view)
-                            fabAction()
-                        },
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        shape = MaterialTheme.shapes.large,
-                        elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp),
-                    ) {
-                        Icon(
-                            painter = painterResource(id = fabIconRes),
-                            contentDescription = fabContentDescription,
-                        )
+                    Box {
+                        FloatingActionButton(
+                            onClick = {
+                                HapticUtil.performUIHaptic(view)
+                                fabAction()
+                            },
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            shape = MaterialTheme.shapes.large,
+                            elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp),
+                        ) {
+                            Icon(
+                                painter = painterResource(id = fabIconRes),
+                                contentDescription = fabContentDescription,
+                            )
+                        }
+                        if (fabHasBadge) {
+                            androidx.compose.material3.Badge(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 4.dp, y = (-4).dp)
+                                    .size(10.dp),
+                                containerColor = MaterialTheme.colorScheme.error,
+                            )
+                        }
                     }
                 }
             }
