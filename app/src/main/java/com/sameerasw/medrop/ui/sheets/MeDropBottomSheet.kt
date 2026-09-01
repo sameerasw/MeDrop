@@ -113,6 +113,7 @@ import java.io.File
 @Composable
 fun MeDropBottomSheet(
     viewModel: MeDropViewModel,
+    initialProfileType: MeDropProfileType? = null,
     onDismissRequest: () -> Unit,
 ) {
     val settings by viewModel.meDropSettings
@@ -121,6 +122,12 @@ fun MeDropBottomSheet(
 
     LaunchedEffect(Unit) {
         viewModel.loadMeDropSettings(context)
+    }
+
+    LaunchedEffect(initialProfileType) {
+        if (initialProfileType != null) {
+            viewModel.setMeDropActiveProfile(context, initialProfileType)
+        }
     }
 
     val safeSettings = settings ?: MeDropSettings()

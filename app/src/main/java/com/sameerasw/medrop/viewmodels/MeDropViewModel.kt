@@ -83,6 +83,7 @@ class MeDropViewModel : ViewModel() {
             }
         isMeDropAllowWhenLocked.value = repo.isMeDropAllowWhenLocked()
         com.sameerasw.medrop.services.MeDropWearSyncManager.syncProfiles(context)
+        com.sameerasw.medrop.utils.DynamicShortcutManager.updateShortcuts(context, meDropSettings.value)
     }
 
     fun saveMeDropSettings(
@@ -93,6 +94,7 @@ class MeDropViewModel : ViewModel() {
         val json = if (settings != null) Gson().toJson(settings) else null
         MeDropRepository(context).setMeDropSettingsJson(json)
         com.sameerasw.medrop.services.MeDropWearSyncManager.syncProfiles(context)
+        com.sameerasw.medrop.utils.DynamicShortcutManager.updateShortcuts(context, settings)
     }
 
     fun setMeDropContact(

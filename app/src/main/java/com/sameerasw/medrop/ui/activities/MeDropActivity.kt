@@ -36,13 +36,25 @@ class MeDropActivity : ComponentActivity() {
             val isPitchBlackThemeEnabled by mainViewModel.isPitchBlackThemeEnabled
             val context = LocalContext.current
 
-            LaunchedEffect(Unit) {
-                mainViewModel.check(context)
+            val initialProfileTypeStr = intent?.getStringExtra("extra_profile_type")
+            val initialProfileType = initialProfileTypeStr?.let {
+                try {
+                    com.sameerasw.medrop.domain.model.MeDropProfileType.valueOf(it)
+                } catch (_: Exception) {
+                    null
+                }
+            }
+
+            LaunchedEffect(initialProfileType) {
+                if (initialProfileType != null) {
+                    mainViewModel.setMeDropActiveProfile(context, initialProfileType)
+                }
             }
 
             MeDropTheme(pitchBlackTheme = isPitchBlackThemeEnabled) {
                 MeDropBottomSheet(
                     viewModel = mainViewModel,
+                    initialProfileType = initialProfileType,
                     onDismissRequest = { finish() }
                 )
             }
