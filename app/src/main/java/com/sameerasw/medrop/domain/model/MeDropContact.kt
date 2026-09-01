@@ -208,5 +208,47 @@ data class MeDropContact(
         fun clearPhotoCache() {
             photoBase64Cache.clear()
         }
+
+        fun getPhotoBase64(context: android.content.Context, photoUri: String?): String? {
+            if (photoUri.isNullOrBlank()) return null
+            val cached = photoBase64Cache[photoUri]
+            if (cached != null) return cached
+            return try {
+                val uri = android.net.Uri.parse(photoUri)
+                context.contentResolver.openInputStream(uri)?.use { stream ->
+                    val originalBitmap = android.graphics.BitmapFactory.decodeStream(stream)
+                    if (originalBitmap != null) {
+                        val maxDim = 96
+                        val width = originalBitmap.width
+                        val height = originalBitmap.height
+                        val ratio = if (width > height) {
+                            maxDim.toFloat() / width
+                        } else {
+                            maxDim.toFloat() / height
+                        }
+                        val scaledBitmap = if (ratio < 1.0f) {
+                            android.graphics.Bitmap.createScaledBitmap(
+                                originalBitmap,
+                                (width * ratio).toInt().coerceAtLeast(1),
+                                (height * ratio).toInt().coerceAtLeast(1),
+                                true
+                            )
+                        } else {
+                            originalBitmap
+                        }
+                        val baos = java.io.ByteArrayOutputStream()
+                        scaledBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 60, baos)
+                        val bytes = baos.toByteArray()
+                        if (bytes.isNotEmpty()) {
+                            val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+                            photoBase64Cache[photoUri] = base64
+                            base64
+                        } else null
+                    } else null
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
     }
 }

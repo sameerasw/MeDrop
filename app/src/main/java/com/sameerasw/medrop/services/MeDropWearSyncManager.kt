@@ -6,6 +6,7 @@ import com.google.android.gms.wearable.PutDataMapRequest
 import com.google.android.gms.wearable.Wearable
 import com.google.gson.Gson
 import com.sameerasw.medrop.data.repository.MeDropRepository
+import com.sameerasw.medrop.domain.model.MeDropContact
 import com.sameerasw.medrop.domain.model.MeDropProfileType
 import com.sameerasw.medrop.domain.model.MeDropSettings
 
@@ -22,6 +23,8 @@ object MeDropWearSyncManager {
         val iconResName: String,
         val isEnabled: Boolean,
         val isActive: Boolean,
+        val vcard: String = "",
+        val photoBase64: String? = null,
     )
 
     fun syncProfiles(context: Context) {
@@ -40,6 +43,14 @@ object MeDropWearSyncManager {
 
             // Contact Profile
             if (settings.contactProfile.enabled) {
+                val photoUri = settings.getEffectivePhotoUri(MeDropProfileType.CONTACT)
+                val vcard = contact.toVCard(
+                    context = context,
+                    activeEntryIds = settings.getEffectiveEntryIds(MeDropProfileType.CONTACT),
+                    customPhotoUri = photoUri,
+                    customDisplayName = settings.getEffectiveDisplayName(MeDropProfileType.CONTACT),
+                    fieldOverrides = settings.contactProfile.customFieldOverrides ?: emptyMap()
+                )
                 items.add(
                     WearProfileItem(
                         type = MeDropProfileType.CONTACT.name,
@@ -48,12 +59,22 @@ object MeDropWearSyncManager {
                         iconResName = "medrop_logo",
                         isEnabled = true,
                         isActive = settings.activeProfileType == MeDropProfileType.CONTACT,
+                        vcard = vcard,
+                        photoBase64 = MeDropContact.getPhotoBase64(context, photoUri),
                     )
                 )
             }
 
             // Professional Profile
             if (settings.professionalProfile.enabled) {
+                val photoUri = settings.getEffectivePhotoUri(MeDropProfileType.PROFESSIONAL)
+                val vcard = contact.toVCard(
+                    context = context,
+                    activeEntryIds = settings.getEffectiveEntryIds(MeDropProfileType.PROFESSIONAL),
+                    customPhotoUri = photoUri,
+                    customDisplayName = settings.getEffectiveDisplayName(MeDropProfileType.PROFESSIONAL),
+                    fieldOverrides = settings.professionalProfile.customFieldOverrides ?: emptyMap()
+                )
                 items.add(
                     WearProfileItem(
                         type = MeDropProfileType.PROFESSIONAL.name,
@@ -62,12 +83,22 @@ object MeDropWearSyncManager {
                         iconResName = "rounded_work_24",
                         isEnabled = true,
                         isActive = settings.activeProfileType == MeDropProfileType.PROFESSIONAL,
+                        vcard = vcard,
+                        photoBase64 = MeDropContact.getPhotoBase64(context, photoUri),
                     )
                 )
             }
 
             // Custom Profile
             if (settings.customProfile.enabled) {
+                val photoUri = settings.getEffectivePhotoUri(MeDropProfileType.CUSTOM)
+                val vcard = contact.toVCard(
+                    context = context,
+                    activeEntryIds = settings.getEffectiveEntryIds(MeDropProfileType.CUSTOM),
+                    customPhotoUri = photoUri,
+                    customDisplayName = settings.getEffectiveDisplayName(MeDropProfileType.CUSTOM),
+                    fieldOverrides = settings.customProfile.customFieldOverrides ?: emptyMap()
+                )
                 items.add(
                     WearProfileItem(
                         type = MeDropProfileType.CUSTOM.name,
@@ -76,6 +107,8 @@ object MeDropWearSyncManager {
                         iconResName = "rounded_id_card_24",
                         isEnabled = true,
                         isActive = settings.activeProfileType == MeDropProfileType.CUSTOM,
+                        vcard = vcard,
+                        photoBase64 = MeDropContact.getPhotoBase64(context, photoUri),
                     )
                 )
             }

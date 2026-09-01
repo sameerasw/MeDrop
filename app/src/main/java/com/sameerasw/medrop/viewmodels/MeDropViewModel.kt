@@ -57,6 +57,7 @@ class MeDropViewModel : ViewModel() {
                 MeDropSettings()
             }
         isMeDropAllowWhenLocked.value = repo.isMeDropAllowWhenLocked()
+        com.sameerasw.medrop.services.MeDropWearSyncManager.syncProfiles(context)
     }
 
     fun saveMeDropSettings(
