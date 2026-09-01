@@ -123,4 +123,9 @@
     <string name="developer_options_empty_shrug">¯\\_(ツ)_/¯</string>
     <string name="developer_options_enabled_toast">Developer options enabled</string>
     <string name="developer_options_disabled_toast">Developer options disabled</string>
+    <string name="feat_medrop_received_contact_title">Contact Received</string>
+    <string name="feat_medrop_save_contact">Save Contact</string>
+    <string name="feat_medrop_contact_saved">Contact opened in Contacts app</string>
+    <string name="feat_medrop_enable_receiving">Receive contacts</string>
+    <string name="feat_medrop_enable_receiving_desc">Allow receiving contact cards when holding near another device</string>
 </resources>

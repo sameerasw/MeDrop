@@ -243,6 +243,13 @@ class SettingsActivity : ComponentActivity() {
 
                             RoundedCardContainer {
                                 IconToggleItem(
+                                    iconRes = R.drawable.rounded_contactless_24,
+                                    title = stringResource(R.string.feat_medrop_enable_receiving),
+                                    description = stringResource(R.string.feat_medrop_enable_receiving_desc),
+                                    isChecked = safeSettings.enableReceiving,
+                                    onCheckedChange = { viewModel.setMeDropEnableReceiving(context, it) },
+                                )
+                                IconToggleItem(
                                     iconRes = R.drawable.rounded_share_24,
                                     title = stringResource(R.string.feat_medrop_use_photo_for_all),
                                     description = stringResource(R.string.feat_medrop_use_photo_for_all_desc),

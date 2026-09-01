@@ -118,6 +118,12 @@ class MeDropViewModel : ViewModel() {
         saveMeDropSettings(context, updated)
     }
 
+    fun setMeDropEnableReceiving(context: Context, enabled: Boolean) {
+        val current = meDropSettings.value ?: MeDropSettings()
+        val updated = current.copy(enableReceiving = enabled)
+        saveMeDropSettings(context, updated)
+    }
+
     fun toggleMeDropProfileEntry(
         context: Context,
         type: MeDropProfileType,

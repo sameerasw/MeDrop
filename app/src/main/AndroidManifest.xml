@@ -37,6 +37,25 @@
         </activity>
 
         <activity
+            android:name=".ui.activities.ReceivedContactActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:label="@string/feat_medrop_received_contact_title"
+            android:noHistory="true"
+            android:showOnLockScreen="true"
+            android:showWhenLocked="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.MeDrop.Translucent"
+            android:turnScreenOn="true">
+            <intent-filter>
+                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/vcard" />
+                <data android:mimeType="text/x-vcard" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".ui.activities.MeDropActivity"
             android:excludeFromRecents="true"
             android:exported="true"

@@ -151,6 +151,91 @@ class MainActivity : AppCompatActivity() {
             val settings by viewModel.meDropSettings
             val safeSettings = settings ?: MeDropSettings()
 
+            var receivedContact by remember { mutableStateOf<com.sameerasw.medrop.utils.ReceivedContact?>(null) }
+
+            val activity = context as? androidx.activity.ComponentActivity
+            val mainView = androidx.compose.ui.platform.LocalView.current
+            LaunchedEffect(activity?.intent) {
+                activity?.intent?.let { intent ->
+                    if (intent.action == android.nfc.NfcAdapter.ACTION_NDEF_DISCOVERED) {
+                        val rawMsgs = intent.getParcelableArrayExtra(android.nfc.NfcAdapter.EXTRA_NDEF_MESSAGES)
+                        if (rawMsgs != null) {
+                            for (raw in rawMsgs) {
+                                val msg = raw as? android.nfc.NdefMessage ?: continue
+                                for (rec in msg.records) {
+                                    val text = String(rec.payload, Charsets.UTF_8)
+                                    if (text.contains("BEGIN:VCARD", ignoreCase = true)) {
+                                        val start = text.indexOf("BEGIN:VCARD", ignoreCase = true)
+                                        val clean = text.substring(start)
+                                        val parsed = com.sameerasw.medrop.utils.VCardParser.parse(clean)
+                                        if (parsed != null) {
+                                            val loc = IntArray(2)
+                                            mainView.getLocationInWindow(loc)
+                                            val cx = loc[0] + (mainView.width / 2f)
+                                            val cy = loc[1] + (mainView.height / 2f)
+                                            MainActivity.triggerLiquidRipple(cx, cy)
+                                            HapticUtil.performHeavyHaptic(mainView)
+                                            receivedContact = parsed
+                                            break
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            DisposableEffect(activity, lifecycleOwner, safeSettings.enableReceiving) {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_RESUME) {
+                        if (activity != null && safeSettings.enableReceiving) {
+                            com.sameerasw.medrop.utils.MeDropNfcManager.enableReaderMode(activity) { vcardStr ->
+                                val parsed = com.sameerasw.medrop.utils.VCardParser.parse(vcardStr)
+                                if (parsed != null) {
+                                    val loc = IntArray(2)
+                                    mainView.getLocationInWindow(loc)
+                                    val cx = loc[0] + (mainView.width / 2f)
+                                    val cy = loc[1] + (mainView.height / 2f)
+                                    MainActivity.triggerLiquidRipple(cx, cy)
+                                    HapticUtil.performHeavyHaptic(mainView)
+                                    receivedContact = parsed
+                                }
+                            }
+                        }
+                    } else if (event == Lifecycle.Event.ON_PAUSE) {
+                        if (activity != null) {
+                            com.sameerasw.medrop.utils.MeDropNfcManager.disableReaderMode(activity)
+                        }
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                if (activity != null) {
+                    if (safeSettings.enableReceiving) {
+                        com.sameerasw.medrop.utils.MeDropNfcManager.enableReaderMode(activity) { vcardStr ->
+                            val parsed = com.sameerasw.medrop.utils.VCardParser.parse(vcardStr)
+                            if (parsed != null) {
+                                val loc = IntArray(2)
+                                mainView.getLocationInWindow(loc)
+                                val cx = loc[0] + (mainView.width / 2f)
+                                val cy = loc[1] + (mainView.height / 2f)
+                                MainActivity.triggerLiquidRipple(cx, cy)
+                                HapticUtil.performHeavyHaptic(mainView)
+                                receivedContact = parsed
+                            }
+                        }
+                    } else {
+                        com.sameerasw.medrop.utils.MeDropNfcManager.disableReaderMode(activity)
+                    }
+                }
+                onDispose {
+                    lifecycleOwner.lifecycle.removeObserver(observer)
+                    if (activity != null) {
+                        com.sameerasw.medrop.utils.MeDropNfcManager.disableReaderMode(activity)
+                    }
+                }
+            }
+
             val entranceProgress = remember { androidx.compose.animation.core.Animatable(0f) }
             LaunchedEffect(Unit) {
                 kotlinx.coroutines.delay(250)
@@ -446,6 +531,13 @@ class MainActivity : AppCompatActivity() {
                             onDismissRequest = { showPermissionsSheet = false },
                             featureTitle = stringResource(R.string.feat_medrop_title),
                             permissions = permItems
+                        )
+                    }
+
+                    receivedContact?.let { contact ->
+                        com.sameerasw.medrop.ui.sheets.ReceivedContactBottomSheet(
+                            contact = contact,
+                            onDismissRequest = { receivedContact = null }
                         )
                     }
                 }

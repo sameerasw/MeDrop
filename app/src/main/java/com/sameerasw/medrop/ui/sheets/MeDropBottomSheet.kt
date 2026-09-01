@@ -130,24 +130,62 @@ fun MeDropBottomSheet(
     val activity = context as? Activity
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    DisposableEffect(activity, lifecycleOwner) {
+    var receivedContact by remember { mutableStateOf<com.sameerasw.medrop.utils.ReceivedContact?>(null) }
+
+    DisposableEffect(activity, lifecycleOwner, safeSettings.enableReceiving) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 viewModel.loadMeDropSettings(context)
-            } else if (event == Lifecycle.Event.ON_STOP) {
+                if (activity != null && safeSettings.enableReceiving) {
+                    MeDropNfcManager.enableReaderMode(activity) { vcardStr ->
+                        val parsed = com.sameerasw.medrop.utils.VCardParser.parse(vcardStr)
+                        if (parsed != null) {
+                            val loc = IntArray(2)
+                            view.getLocationInWindow(loc)
+                            val cx = loc[0] + (view.width / 2f)
+                            val cy = loc[1] + (view.height / 2f)
+                            MainActivity.triggerLiquidRipple(cx, cy)
+                            HapticUtil.performHeavyHaptic(view)
+                            receivedContact = parsed
+                        }
+                    }
+                }
+            } else if (event == Lifecycle.Event.ON_STOP || event == Lifecycle.Event.ON_PAUSE) {
                 if (activity != null) {
+                    MeDropNfcManager.disableReaderMode(activity)
                     CoroutineScope(Dispatchers.IO).launch {
                         MeDropNfcManager.stopBroadcast(activity)
                     }
                 }
-                onDismissRequest()
+                if (event == Lifecycle.Event.ON_STOP) {
+                    onDismissRequest()
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
+        if (activity != null) {
+            if (safeSettings.enableReceiving) {
+                MeDropNfcManager.enableReaderMode(activity) { vcardStr ->
+                    val parsed = com.sameerasw.medrop.utils.VCardParser.parse(vcardStr)
+                    if (parsed != null) {
+                        val loc = IntArray(2)
+                        view.getLocationInWindow(loc)
+                        val cx = loc[0] + (view.width / 2f)
+                        val cy = loc[1] + (view.height / 2f)
+                        MainActivity.triggerLiquidRipple(cx, cy)
+                        HapticUtil.performHeavyHaptic(view)
+                        receivedContact = parsed
+                    }
+                }
+            } else {
+                MeDropNfcManager.disableReaderMode(activity)
+            }
+        }
 
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
             if (activity != null) {
+                MeDropNfcManager.disableReaderMode(activity)
                 CoroutineScope(Dispatchers.IO).launch {
                     MeDropNfcManager.stopBroadcast(activity)
                 }
@@ -1038,6 +1076,13 @@ fun MeDropBottomSheet(
                 }
             }
         }
+    }
+
+    receivedContact?.let { contact ->
+        ReceivedContactBottomSheet(
+            contact = contact,
+            onDismissRequest = { receivedContact = null }
+        )
     }
 }
 
