@@ -139,6 +139,7 @@ class MeDropViewModel : ViewModel() {
         type: MeDropProfileType,
         photoUri: String?,
     ) {
+        MeDropContact.clearPhotoCache()
         val current = meDropSettings.value ?: MeDropSettings()
         val profile = current.getProfile(type).copy(photoUri = photoUri)
         val updated = current.updateProfile(profile)

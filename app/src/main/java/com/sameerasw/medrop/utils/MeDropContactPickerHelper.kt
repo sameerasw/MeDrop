@@ -41,7 +41,13 @@ object MeDropContactPickerHelper {
 
                     val photosDir = java.io.File(context.filesDir, "medrop")
                     if (!photosDir.exists()) photosDir.mkdirs()
-                    val fileName = "custom_photo_${profileType.name.lowercase()}.jpg"
+                    val prefix = "custom_photo_${profileType.name.lowercase()}"
+                    photosDir.listFiles()?.forEach { file ->
+                        if (file.name.startsWith(prefix) && file.name.endsWith(".jpg")) {
+                            file.delete()
+                        }
+                    }
+                    val fileName = "${prefix}_${System.currentTimeMillis()}.jpg"
                     val photoFile = java.io.File(photosDir, fileName)
                     java.io.FileOutputStream(photoFile).use { out ->
                         scaledBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
