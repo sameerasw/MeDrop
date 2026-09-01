@@ -23,70 +23,81 @@ object QrCodeGenerator {
         foregroundColor: Int = Color.BLACK,
         backgroundColor: Int = Color.WHITE,
         logo: Bitmap? = null,
-    ): Bitmap {
-        val hints = EnumMap<EncodeHintType, Any>(EncodeHintType::class.java).apply {
-            put(EncodeHintType.CHARACTER_SET, "UTF-8")
-            put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H)
-            put(EncodeHintType.MARGIN, 2)
-        }
+    ): Bitmap? {
+        if (content.isBlank()) return null
 
+        val errorCorrectionLevels = listOf(ErrorCorrectionLevel.M, ErrorCorrectionLevel.L)
         val writer = QRCodeWriter()
-        val bitMatrix = writer.encode(content, BarcodeFormat.QR_CODE, size, size, hints)
-        val moduleCount = bitMatrix.width
-        val moduleSize = size.toFloat() / moduleCount
 
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        canvas.drawColor(backgroundColor)
-
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = foregroundColor
-            style = Paint.Style.FILL
-        }
-
-        val rect = RectF()
-
-        for (y in 0 until moduleCount) {
-            for (x in 0 until moduleCount) {
-                if (bitMatrix.get(x, y)) {
-                    val left = x * moduleSize
-                    val top = y * moduleSize
-                    val right = left + moduleSize
-                    val bottom = top + moduleSize
-                    rect.set(left, top, right, bottom)
-                    canvas.drawRect(rect, paint)
+        for (ecLevel in errorCorrectionLevels) {
+            try {
+                val hints = EnumMap<EncodeHintType, Any>(EncodeHintType::class.java).apply {
+                    put(EncodeHintType.CHARACTER_SET, "UTF-8")
+                    put(EncodeHintType.ERROR_CORRECTION, ecLevel)
+                    put(EncodeHintType.MARGIN, 2)
                 }
+
+                val bitMatrix = writer.encode(content, BarcodeFormat.QR_CODE, size, size, hints)
+                val moduleCount = bitMatrix.width
+                val moduleSize = size.toFloat() / moduleCount
+
+                val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(bitmap)
+                canvas.drawColor(backgroundColor)
+
+                val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = foregroundColor
+                    style = Paint.Style.FILL
+                }
+
+                val rect = RectF()
+
+                for (y in 0 until moduleCount) {
+                    for (x in 0 until moduleCount) {
+                        if (bitMatrix.get(x, y)) {
+                            val left = x * moduleSize
+                            val top = y * moduleSize
+                            val right = left + moduleSize
+                            val bottom = top + moduleSize
+                            rect.set(left, top, right, bottom)
+                            canvas.drawRect(rect, paint)
+                        }
+                    }
+                }
+
+                if (logo != null) {
+                    val logoSize = size * 0.20f
+                    val logoMargin = (size - logoSize) / 2f
+                    val badgeRect = RectF(logoMargin, logoMargin, logoMargin + logoSize, logoMargin + logoSize)
+
+                    val badgeBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        color = backgroundColor
+                        style = Paint.Style.FILL
+                    }
+                    val badgeStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        color = Color.parseColor("#26000000")
+                        style = Paint.Style.STROKE
+                        strokeWidth = 3f
+                    }
+                    canvas.drawOval(badgeRect, badgeBgPaint)
+                    canvas.drawOval(badgeRect, badgeStrokePaint)
+
+                    val innerPadding = logoSize * 0.14f
+                    val innerRect = RectF(
+                        badgeRect.left + innerPadding,
+                        badgeRect.top + innerPadding,
+                        badgeRect.right - innerPadding,
+                        badgeRect.bottom - innerPadding,
+                    )
+                    canvas.drawBitmap(logo, null, innerRect, Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
+                }
+
+                return bitmap
+            } catch (_: Exception) {
+                // Try next error correction level or return null
             }
         }
-
-        if (logo != null) {
-            val logoSize = size * 0.20f
-            val logoMargin = (size - logoSize) / 2f
-            val badgeRect = RectF(logoMargin, logoMargin, logoMargin + logoSize, logoMargin + logoSize)
-
-            val badgeBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = backgroundColor
-                style = Paint.Style.FILL
-            }
-            val badgeStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = Color.parseColor("#26000000")
-                style = Paint.Style.STROKE
-                strokeWidth = 3f
-            }
-            canvas.drawOval(badgeRect, badgeBgPaint)
-            canvas.drawOval(badgeRect, badgeStrokePaint)
-
-            val innerPadding = logoSize * 0.14f
-            val innerRect = RectF(
-                badgeRect.left + innerPadding,
-                badgeRect.top + innerPadding,
-                badgeRect.right - innerPadding,
-                badgeRect.bottom - innerPadding,
-            )
-            canvas.drawBitmap(logo, null, innerRect, Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
-        }
-
-        return bitmap
+        return null
     }
 
     fun getAppLogoBitmap(context: Context): Bitmap? {
