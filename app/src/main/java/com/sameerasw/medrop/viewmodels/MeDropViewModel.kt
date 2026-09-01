@@ -66,6 +66,7 @@ class MeDropViewModel : ViewModel() {
         meDropSettings.value = settings
         val json = if (settings != null) Gson().toJson(settings) else null
         MeDropRepository(context).setMeDropSettingsJson(json)
+        com.sameerasw.medrop.services.MeDropWearSyncManager.syncProfiles(context)
     }
 
     fun setMeDropContact(
