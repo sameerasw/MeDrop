@@ -373,6 +373,21 @@ fun MeDropHeaderUI(
                     onDismissRequest = { isPhotoMenuExpanded = false },
                 ) {
                     SegmentedDropdownMenuItem(
+                        text = { Text(stringResource(R.string.feat_medrop_edit_name)) },
+                        onClick = {
+                            isPhotoMenuExpanded = false
+                            HapticUtil.performVirtualKeyHaptic(view)
+                            isEditingName = true
+                        },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(R.drawable.rounded_contacts_product_24),
+                                contentDescription = null,
+                            )
+                        },
+                    )
+
+                    SegmentedDropdownMenuItem(
                         text = { Text(stringResource(R.string.feat_medrop_choose_custom_photo)) },
                         onClick = {
                             isPhotoMenuExpanded = false
@@ -417,13 +432,12 @@ fun MeDropHeaderUI(
         ) {
             if (contact != null) {
                 val displayName = safeSettings.getEffectiveDisplayName(activeProfileType)
-                val canEditName = activeProfileType != MeDropProfileType.CONTACT
 
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .clickable(enabled = canEditName) {
+                        .clickable {
                             HapticUtil.performVirtualKeyHaptic(view)
                             isEditingName = true
                         }

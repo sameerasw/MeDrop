@@ -16,6 +16,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -93,6 +94,9 @@ import com.sameerasw.medrop.ui.core.containers.RoundedCardContainer
 import com.sameerasw.medrop.ui.core.pickers.SegmentedPicker
 import com.sameerasw.medrop.ui.core.sheets.MeDropBottomSheetContainer
 import com.sameerasw.medrop.ui.effects.NfcRippleEffect
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.sameerasw.medrop.ui.core.sheets.EditFieldBottomSheet
+import com.sameerasw.medrop.ui.core.sheets.FieldInputType
 import com.sameerasw.medrop.ui.theme.Shapes
 import com.sameerasw.medrop.utils.HapticUtil
 import com.sameerasw.medrop.utils.MeDropNfcManager
@@ -211,6 +215,7 @@ fun MeDropBottomSheet(
 
     var isQrModeActive by remember { mutableStateOf(false) }
     var qrBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var isEditingName by remember { mutableStateOf(false) }
 
     val window = activity?.window
     val originalBrightness = remember(window) {
@@ -462,25 +467,39 @@ fun MeDropBottomSheet(
                         .fillMaxWidth()
                         .padding(horizontal = 8.dp)
                 ) {
-                    Text(
-                        text = contact.displayName,
-                        modifier = Modifier.basicMarquee(),
-                        style = MaterialTheme.typography.headlineLarge.copy(
-                            fontFamily = FontFamily(
-                                Font(
-                                    R.font.google_sans_flex,
-                                    variationSettings = FontVariation.Settings(
-                                        FontVariation.width(150f),
-                                        FontVariation.weight(FontWeight.Normal.weight),
-                                        FontVariation.Setting("ROND", 100f),
+                    val displayName = safeSettings.getEffectiveDisplayName(activeProfileType)
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                HapticUtil.performVirtualKeyHaptic(view)
+                                isEditingName = true
+                            }
+                            .padding(vertical = 4.dp, horizontal = 8.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = displayName,
+                            modifier = Modifier.basicMarquee(),
+                            style = MaterialTheme.typography.headlineLarge.copy(
+                                fontFamily = FontFamily(
+                                    Font(
+                                        R.font.google_sans_flex,
+                                        variationSettings = FontVariation.Settings(
+                                            FontVariation.width(150f),
+                                            FontVariation.weight(FontWeight.Normal.weight),
+                                            FontVariation.Setting("ROND", 100f),
+                                        ),
                                     ),
                                 ),
                             ),
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        textAlign = TextAlign.Center
-                    )
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            textAlign = TextAlign.Center
+                        )
+                    }
 
                     val showNickname = safeSettings.isEntrySelected(activeProfileType, "nickname") && !contact.nickname.isNullOrBlank()
                     val showPronouns = safeSettings.isEntrySelected(activeProfileType, "pronouns") && !contact.pronouns.isNullOrBlank()
@@ -496,6 +515,23 @@ fun MeDropBottomSheet(
                             modifier = Modifier.basicMarquee()
                         )
                     }
+                }
+
+                if (isEditingName) {
+                    EditFieldBottomSheet(
+                        title = stringResource(R.string.feat_medrop_edit_name_title),
+                        initialValue = safeSettings.getProfile(activeProfileType).customDisplayName ?: contact.displayName,
+                        defaultValue = contact.displayName,
+                        iconRes = R.drawable.rounded_contacts_product_24,
+                        inputType = FieldInputType.PERSON_NAME,
+                        onSave = { newName ->
+                            viewModel.updateMeDropProfileDisplayName(context, activeProfileType, newName)
+                        },
+                        onResetToDefault = {
+                            viewModel.updateMeDropProfileDisplayName(context, activeProfileType, null)
+                        },
+                        onDismissRequest = { isEditingName = false }
+                    )
                 }
 
                 if (availableProfiles.size > 1) {

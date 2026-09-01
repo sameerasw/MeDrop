@@ -53,6 +53,7 @@
     <string name="feat_medrop_save_visibility">Save visibility</string>
     <string name="feat_medrop_no_visible_fields">No fields visible for this profile</string>
     <string name="feat_medrop_edit_field_title">Edit %1$s</string>
+    <string name="feat_medrop_edit_name">Edit name</string>
     <string name="feat_medrop_edit_name_title">Edit Profile Name</string>
     <string name="feat_medrop_action_save">Save</string>
     <string name="feat_medrop_action_cancel">Cancel</string>
