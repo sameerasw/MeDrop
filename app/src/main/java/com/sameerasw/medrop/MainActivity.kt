@@ -197,14 +197,18 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            // Haptics on tab switch
+            // Haptics and active profile sync on tab switch
             LaunchedEffect(pagerState) {
                 var isFirst = true
-                snapshotFlow { pagerState.currentPage }.collect {
+                snapshotFlow { pagerState.currentPage }.collect { page ->
                     if (isFirst) {
                         isFirst = false
                     } else {
                         HapticUtil.performHeavyHaptic(view)
+                        val selectedType = enabledTabs.getOrNull(page)
+                        if (selectedType != null && selectedType != safeSettings.activeProfileType) {
+                            viewModel.setMeDropActiveProfile(context, selectedType)
+                        }
                     }
                 }
             }

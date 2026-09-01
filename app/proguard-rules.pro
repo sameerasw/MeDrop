@@ -24,6 +24,8 @@
 -keep class com.sameerasw.medrop.data.model.** { *; }
 -keepclassmembers class com.sameerasw.medrop.data.model.** { *; }
 -keep class com.sameerasw.medrop.data.repository.** { *; }
+-keep class com.sameerasw.medrop.services.MeDropWearSyncManager** { *; }
+-keepclassmembers class com.sameerasw.medrop.services.MeDropWearSyncManager** { *; }
 
 # Keep ViewModel constructors for reflection-based instantiation
 -keepclassmembers class * extends androidx.lifecycle.ViewModel {

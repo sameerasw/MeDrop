@@ -10,21 +10,25 @@ import com.sameerasw.medrop.domain.model.MeDropContact
 import com.sameerasw.medrop.domain.model.MeDropProfileType
 import com.sameerasw.medrop.domain.model.MeDropSettings
 
+import androidx.annotation.Keep
+import com.google.gson.annotations.SerializedName
+
 object MeDropWearSyncManager {
     private const val TAG = "MeDropWearSyncManager"
     const val SYNC_PATH = "/medrop_profiles"
     const val KEY_PROFILES_JSON = "profiles_json"
     const val KEY_TIMESTAMP = "timestamp"
 
+    @Keep
     data class WearProfileItem(
-        val type: String,
-        val title: String,
-        val displayName: String,
-        val iconResName: String,
-        val isEnabled: Boolean,
-        val isActive: Boolean,
-        val vcard: String = "",
-        val photoBase64: String? = null,
+        @SerializedName("type") val type: String,
+        @SerializedName("title") val title: String,
+        @SerializedName("displayName") val displayName: String,
+        @SerializedName("iconResName") val iconResName: String,
+        @SerializedName("isEnabled") val isEnabled: Boolean,
+        @SerializedName("isActive") val isActive: Boolean,
+        @SerializedName("vcard") val vcard: String = "",
+        @SerializedName("photoBase64") val photoBase64: String? = null,
     )
 
     fun syncProfiles(context: Context) {
