@@ -275,6 +275,20 @@ class SettingsActivity : ComponentActivity() {
 
                             RoundedCardContainer {
                                 IconToggleItem(
+                                    iconRes = R.drawable.rounded_globe_24,
+                                    title = stringResource(R.string.feat_medrop_iphone_support),
+                                    description = stringResource(R.string.feat_medrop_iphone_support_desc),
+                                    isChecked = safeSettings.enableIPhoneSupport,
+                                    onCheckedChange = { viewModel.setMeDropEnableIPhoneSupport(context, it) },
+                                )
+                                IconToggleItem(
+                                    iconRes = R.drawable.rounded_contacts_product_24,
+                                    title = stringResource(R.string.feat_medrop_share_as_vcard),
+                                    description = stringResource(R.string.feat_medrop_share_as_vcard_desc),
+                                    isChecked = safeSettings.shareAsVCard,
+                                    onCheckedChange = { viewModel.setMeDropShareAsVCard(context, it) },
+                                )
+                                IconToggleItem(
                                     iconRes = R.drawable.rounded_contactless_24,
                                     title = stringResource(R.string.feat_medrop_enable_receiving),
                                     description = stringResource(R.string.feat_medrop_enable_receiving_desc),

@@ -139,6 +139,18 @@ class MeDropViewModel : ViewModel() {
         saveMeDropSettings(context, updated)
     }
 
+    fun setMeDropEnableIPhoneSupport(context: Context, enabled: Boolean) {
+        val current = meDropSettings.value ?: MeDropSettings()
+        if (!enabled && !current.shareAsVCard) return
+        saveMeDropSettings(context, current.copy(enableIPhoneSupport = enabled))
+    }
+
+    fun setMeDropShareAsVCard(context: Context, enabled: Boolean) {
+        val current = meDropSettings.value ?: MeDropSettings()
+        if (!enabled && !current.enableIPhoneSupport) return
+        saveMeDropSettings(context, current.copy(shareAsVCard = enabled))
+    }
+
     fun setMeDropUsePhotoForAll(context: Context, enabled: Boolean) {
         val current = meDropSettings.value ?: MeDropSettings()
         val updated = current.copy(usePhotoForAll = enabled)

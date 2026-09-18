@@ -67,17 +67,20 @@ class MeDropHceService : HostApduService() {
             return "$WEB_FALLBACK_BASE_URL#v=$encoded"
         }
 
-        private fun ndefWrap(vcardString: String): ByteArray {
-            val uriRecord = NdefRecord.createUri(buildContactUrl(vcardString))
-            val vcardRecord = NdefRecord.createMime("text/vcard", vcardString.toByteArray(Charsets.UTF_8))
-            val message = NdefMessage(arrayOf(uriRecord, vcardRecord))
+        private fun ndefWrap(vcardString: String, includeIPhoneSupport: Boolean, includeVCard: Boolean): ByteArray {
+            val records = mutableListOf<NdefRecord>()
+            if (includeIPhoneSupport) records.add(NdefRecord.createUri(buildContactUrl(vcardString)))
+            if (includeVCard || records.isEmpty()) {
+                records.add(NdefRecord.createMime("text/vcard", vcardString.toByteArray(Charsets.UTF_8)))
+            }
+            val message = NdefMessage(records.toTypedArray())
             val ndefData = message.toByteArray()
             val nlen = byteArrayOf((ndefData.size shr 8).toByte(), (ndefData.size and 0xFF).toByte())
             return nlen + ndefData
         }
 
-        fun prepareVCard(vcardString: String) {
-            pendingVCardBytes = ndefWrap(vcardString)
+        fun prepareVCard(vcardString: String, includeIPhoneSupport: Boolean = true, includeVCard: Boolean = true) {
+            pendingVCardBytes = ndefWrap(vcardString, includeIPhoneSupport, includeVCard)
         }
 
         fun clearVCard() {
@@ -100,7 +103,7 @@ class MeDropHceService : HostApduService() {
                     val activeEntries = settings.getEffectiveEntryIds(activeType)
                     val photoUri = settings.getEffectivePhotoUri(activeType)
                     val vcard = contact.toVCard(this, activeEntries, photoUri)
-                    prepareVCard(vcard)
+                    prepareVCard(vcard, settings.enableIPhoneSupport, settings.shareAsVCard)
                 }
             } catch (_: Exception) {}
         }

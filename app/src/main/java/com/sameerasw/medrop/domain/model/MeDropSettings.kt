@@ -9,6 +9,8 @@ data class MeDropSettings(
     val allowWhenLocked: Boolean = true,
     val showRipple: Boolean = true,
     val enableReceiving: Boolean = false,
+    val enableIPhoneSupport: Boolean = true,
+    val shareAsVCard: Boolean = true,
     val activeProfileType: MeDropProfileType = MeDropProfileType.CONTACT
 ) {
     fun getProfile(type: MeDropProfileType): MeDropProfile {

@@ -37,7 +37,7 @@ object MeDropNfcManager {
         }
 
         withContext(Dispatchers.IO) {
-            MeDropHceService.prepareVCard(vCard)
+            MeDropHceService.prepareVCard(vCard, settings.enableIPhoneSupport, settings.shareAsVCard)
         }
 
         withContext(Dispatchers.Main) {
@@ -91,7 +91,7 @@ object MeDropNfcManager {
             }
 
             withContext(Dispatchers.IO) {
-                MeDropHceService.prepareVCard(vCard)
+                MeDropHceService.prepareVCard(vCard, settings.enableIPhoneSupport, settings.shareAsVCard)
             }
         }
     }
