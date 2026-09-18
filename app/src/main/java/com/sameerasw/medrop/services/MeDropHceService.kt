@@ -56,16 +56,28 @@ class MeDropHceService : HostApduService() {
 
         val isScanActive = kotlinx.coroutines.flow.MutableStateFlow(false)
 
-        private fun ndefWrap(payload: ByteArray): ByteArray {
-            val record = NdefRecord.createMime("text/vcard", payload)
-            val message = NdefMessage(record)
+        // Static-page fallback for iPhones
+        private const val WEB_FALLBACK_BASE_URL = "https://sameerasw.com/medrop-card/"
+
+        private fun buildContactUrl(vcardString: String): String {
+            val encoded = android.util.Base64.encodeToString(
+                vcardString.toByteArray(Charsets.UTF_8),
+                android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP or android.util.Base64.NO_PADDING
+            )
+            return "$WEB_FALLBACK_BASE_URL#v=$encoded"
+        }
+
+        private fun ndefWrap(vcardString: String): ByteArray {
+            val uriRecord = NdefRecord.createUri(buildContactUrl(vcardString))
+            val vcardRecord = NdefRecord.createMime("text/vcard", vcardString.toByteArray(Charsets.UTF_8))
+            val message = NdefMessage(arrayOf(uriRecord, vcardRecord))
             val ndefData = message.toByteArray()
             val nlen = byteArrayOf((ndefData.size shr 8).toByte(), (ndefData.size and 0xFF).toByte())
             return nlen + ndefData
         }
 
         fun prepareVCard(vcardString: String) {
-            pendingVCardBytes = ndefWrap(vcardString.toByteArray(Charsets.UTF_8))
+            pendingVCardBytes = ndefWrap(vcardString)
         }
 
         fun clearVCard() {
